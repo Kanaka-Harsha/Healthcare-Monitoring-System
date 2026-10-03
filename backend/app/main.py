@@ -1,32 +1,33 @@
-from contextlib import asynccontextmanager
 import time
-import logging
+import sys
+import traceback
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.core.config import settings
+from app.core.logger import setup_logging, server_logger, access_logger
 from app.db.init_db import init_db
 from app.api.v1 import api_router
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
-logger = logging.getLogger("healthcare.main")
+# Initialize centralized logging system (Console + Rotating Log Files)
+setup_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize DB tables and seed data on startup
-    logger.info("⚡ Starting Healthcare Monitoring Backend...")
+    server_logger.info("==================================================")
+    server_logger.info(f"⚡ STARTING {settings.PROJECT_NAME} BACKEND")
+    server_logger.info(f"🌐 Environment: {settings.ENVIRONMENT} | Host: {settings.HOST}:{settings.PORT}")
+    server_logger.info(f"🔗 Database URL: {settings.DB_URL.split('@')[-1] if '@' in settings.DB_URL else 'Configured'}")
+    server_logger.info("==================================================")
     try:
         init_db()
-        logger.info("✅ Database initialized successfully.")
+        server_logger.info("✅ Database connected and schema verified.")
     except Exception as e:
-        logger.error(f"❌ Database initialization failed: {e}")
+        server_logger.error(f"❌ Database initialization error: {e}", exc_info=True)
     yield
-    logger.info("🛑 Shutting down Healthcare Monitoring Backend...")
+    server_logger.info(f"🛑 SHUTTING DOWN {settings.PROJECT_NAME} BACKEND")
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -36,8 +37,40 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Comprehensive HTTP Request & Response Logging Middleware
+@app.middleware("http")
+async def log_requests_middleware(request: Request, call_next):
+    start_time = time.time()
+    client_host = request.client.host if request.client else "unknown"
+    method = request.method
+    path = request.url.path
+    query_params = str(request.query_params) if request.query_params else ""
+
+    access_logger.info(f"📥 [REQUEST] {method} {path}{('?' + query_params) if query_params else ''} | IP: {client_host}")
+
+    try:
+        response = await call_next(request)
+        duration_ms = (time.time() - start_time) * 1000
+        
+        status_code = response.status_code
+        log_level = access_logger.warning if status_code >= 400 else access_logger.info
+        log_level(
+            f"📤 [RESPONSE] {method} {path} | Status: {status_code} | Time: {duration_ms:.2f}ms | IP: {client_host}"
+        )
+        
+        response.headers["X-Process-Time-MS"] = f"{duration_ms:.2f}"
+        return response
+    except Exception as exc:
+        duration_ms = (time.time() - start_time) * 1000
+        access_logger.error(
+            f"💥 [UNHANDLED EXCEPTION] {method} {path} | Time: {duration_ms:.2f}ms | Error: {str(exc)}\n{traceback.format_exc()}"
+        )
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": "Internal server error. The incident has been logged."}
+        )
+
 # CORS Configuration
-# Extract origins from settings and clean whitespace
 if isinstance(settings.CORS_ORIGINS, str):
     if settings.CORS_ORIGINS.strip() == "*":
         origins = ["*"]
@@ -46,7 +79,6 @@ if isinstance(settings.CORS_ORIGINS, str):
 else:
     origins = list(settings.CORS_ORIGINS)
 
-# Always include Vercel URL placeholder and localhost ports
 for extra in [settings.VERCEL_FRONTEND_URL, "http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5173"]:
     if extra and extra not in origins and "*" not in origins:
         origins.append(extra)
@@ -59,15 +91,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Request Timing Middleware
-@app.middleware("http")
-async def add_process_time_header(request: Request, call_next):
-    start_time = time.time()
-    response = await call_next(request)
-    process_time = time.time() - start_time
-    response.headers["X-Process-Time"] = str(f"{process_time:.4f}s")
-    return response
 
 # Include API v1 Router
 app.include_router(api_router, prefix=settings.API_V1_STR)

@@ -1,22 +1,15 @@
-import logging
 import sys
-
-# Ensure UTF-8 output encoding for Windows shells
-if hasattr(sys.stdout, 'reconfigure'):
-    sys.stdout.reconfigure(encoding='utf-8')
-
+from app.core.logger import db_logger
 from app.db.session import engine, SessionLocal, Base
 from app.models import User, Patient, VitalsRecord, DoctorAccessSession, ClinicalNote, Device, AuditLog
 from app.core.config import settings
 from app.core.security import get_password_hash
 
-logger = logging.getLogger("healthcare.init_db")
-
 def init_db():
-    logger.info("Initializing database tables...")
-    print("[DB INIT] Connecting to Supabase PostgreSQL and creating schema tables...")
+    db_logger.info("Initializing database tables...")
+    db_logger.info("[DB INIT] Connecting to Supabase PostgreSQL and creating schema tables...")
     Base.metadata.create_all(bind=engine)
-    print("[DB INIT] Schema tables created successfully.")
+    db_logger.info("[DB INIT] Schema tables created successfully.")
 
     db = SessionLocal()
     try:
@@ -33,9 +26,9 @@ def init_db():
             )
             db.add(admin)
             db.commit()
-            print(f"[ADMIN] Created default Admin: {settings.DEFAULT_ADMIN_EMAIL} (Password: {settings.DEFAULT_ADMIN_PASSWORD})")
+            db_logger.info(f"[ADMIN] Created default Admin: {settings.DEFAULT_ADMIN_EMAIL}")
         else:
-            print(f"[ADMIN] Admin account already exists: {settings.DEFAULT_ADMIN_EMAIL}")
+            db_logger.info(f"[ADMIN] Admin account already exists: {settings.DEFAULT_ADMIN_EMAIL}")
 
         # Seed sample demo doctor and collector for rapid verification if none exist
         demo_doctor = db.query(User).filter(User.email == "doctor@healthcare.local").first()
@@ -50,7 +43,7 @@ def init_db():
             )
             db.add(doctor)
             db.commit()
-            print("[DOCTOR] Demo Doctor created: doctor@healthcare.local (Password: Doctor@123)")
+            db_logger.info("[DOCTOR] Demo Doctor created: doctor@healthcare.local")
 
         demo_collector = db.query(User).filter(User.email == "collector@healthcare.local").first()
         if not demo_collector:
@@ -64,12 +57,11 @@ def init_db():
             )
             db.add(collector)
             db.commit()
-            print("[COLLECTOR] Demo Field Collector created: collector@healthcare.local (Password: Collector@123)")
+            db_logger.info("[COLLECTOR] Demo Field Collector created: collector@healthcare.local")
 
     except Exception as e:
         db.rollback()
-        logger.error(f"Error seeding database: {e}")
-        print(f"[ERROR] Error during database seed: {e}")
+        db_logger.error(f"[ERROR] Error during database seed: {e}", exc_info=True)
         raise
     finally:
         db.close()
