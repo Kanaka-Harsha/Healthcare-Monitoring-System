@@ -20,7 +20,8 @@ class Settings(BaseSettings):
     # Server
     HOST: str = "0.0.0.0"
     PORT: int = 8000
-    CORS_ORIGINS: Union[str, List[str]] = "*"
+    CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3000,http://localhost:5173,https://healthcare-monitoring-system.vercel.app"
+    VERCEL_FRONTEND_URL: str = "https://healthcare-monitoring-system.vercel.app"
     
     # OTP
     DEV_OTP_MODE: bool = True

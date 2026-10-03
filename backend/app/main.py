@@ -37,11 +37,24 @@ app = FastAPI(
 )
 
 # CORS Configuration
-origins = ["*"] if settings.CORS_ORIGINS == "*" else settings.CORS_ORIGINS
+# Extract origins from settings and clean whitespace
+if isinstance(settings.CORS_ORIGINS, str):
+    if settings.CORS_ORIGINS.strip() == "*":
+        origins = ["*"]
+    else:
+        origins = [orig.strip() for orig in settings.CORS_ORIGINS.split(",") if orig.strip()]
+else:
+    origins = list(settings.CORS_ORIGINS)
+
+# Always include Vercel URL placeholder and localhost ports
+for extra in [settings.VERCEL_FRONTEND_URL, "http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5173"]:
+    if extra and extra not in origins and "*" not in origins:
+        origins.append(extra)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=origins if "*" in origins else origins,
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$" if "*" not in origins else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
