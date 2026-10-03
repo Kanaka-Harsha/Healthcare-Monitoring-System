@@ -79,14 +79,22 @@ if isinstance(settings.CORS_ORIGINS, str):
 else:
     origins = list(settings.CORS_ORIGINS)
 
-for extra in [settings.VERCEL_FRONTEND_URL, "http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000", "http://127.0.0.1:5173"]:
+for extra in [
+    settings.VERCEL_FRONTEND_URL,
+    "https://healthcare-monitoring-system-nine.vercel.app",
+    "https://casually-override-childlike.ngrok-free.dev",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173"
+]:
     if extra and extra not in origins and "*" not in origins:
         origins.append(extra)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins if "*" in origins else origins,
-    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$" if "*" not in origins else None,
+    allow_origin_regex=r"^(https:\/\/.*\.vercel\.app|https:\/\/.*\.ngrok-free\.dev|https:\/\/.*\.ngrok\.app)$" if "*" not in origins else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

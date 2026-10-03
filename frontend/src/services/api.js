@@ -1,11 +1,12 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
+  baseURL: import.meta.env.VITE_API_URL || 'https://casually-override-childlike.ngrok-free.dev/api/v1',
   headers: {
     'Content-Type': 'application/json',
+    'ngrok-skip-browser-warning': 'true', // Bypasses ngrok free interstitial page
   },
-  timeout: 15000,
+  timeout: 20000,
 });
 
 // Request Interceptor: Attach JWT Token
