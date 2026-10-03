@@ -1,0 +1,19 @@
+{
+  "appId": "com.healthcare.monitor",
+  "appName": "HealthPulse Monitor",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "cleartext": true
+  },
+  "plugins": {
+    "BluetoothLe": {
+      "displayStrings": {
+        "scanning": "Scanning for Healthcare ESP32 devices...",
+        "cancel": "Cancel",
+        "availableDevices": "Available Medical Devices",
+        "noDeviceFound": "No ESP32 Devices Found"
+      }
+    }
+  }
+}
