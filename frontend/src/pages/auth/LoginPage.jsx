@@ -36,6 +36,7 @@ const LoginPage = () => {
       if (res.role === 'admin') navigate('/admin');
       else if (res.role === 'doctor') navigate('/doctor');
       else if (res.role === 'collector') navigate('/collector');
+      else if (res.role === 'registrar') navigate('/registration');
       else navigate('/patient');
     } else {
       setStaffError(res.error);
@@ -97,6 +98,9 @@ const LoginPage = () => {
     } else if (role === 'collector') {
       setStaffUsername('collector@healthcare.local');
       setStaffPassword('Collector@123');
+    } else if (role === 'registrar') {
+      setStaffUsername('registrar@healthcare.local');
+      setStaffPassword('Registrar@123');
     }
   };
 
@@ -199,32 +203,39 @@ const LoginPage = () => {
               </button>
             </form>
 
-            {/* Quick Demo Credentials */}
+            {/* Quick Demo Credentials for all 4 Logins */}
             <div className="mt-6 pt-5 border-t border-slate-800">
               <p className="text-[11px] text-slate-400 uppercase font-semibold text-center mb-2.5">
-                Quick Demo Auto-Fill:
+                Quick 4-Role Auto-Fill:
               </p>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button
+                  type="button"
+                  onClick={() => autofillStaff('registrar')}
+                  className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/40 text-[11px] text-emerald-400 font-medium transition text-center"
+                >
+                  1. Registration
+                </button>
                 <button
                   type="button"
                   onClick={() => autofillStaff('collector')}
-                  className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] text-teal-400 font-medium transition"
+                  className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-teal-500/40 text-[11px] text-teal-400 font-medium transition text-center"
                 >
-                  Collector
+                  2. Healthcamp
                 </button>
                 <button
                   type="button"
                   onClick={() => autofillStaff('doctor')}
-                  className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] text-blue-400 font-medium transition"
+                  className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/40 text-[11px] text-blue-400 font-medium transition text-center"
                 >
-                  Doctor
+                  3. Doctor
                 </button>
                 <button
                   type="button"
                   onClick={() => autofillStaff('admin')}
-                  className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] text-purple-400 font-medium transition"
+                  className="px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-purple-500/40 text-[11px] text-purple-400 font-medium transition text-center"
                 >
-                  Admin
+                  4. Admin
                 </button>
               </div>
             </div>

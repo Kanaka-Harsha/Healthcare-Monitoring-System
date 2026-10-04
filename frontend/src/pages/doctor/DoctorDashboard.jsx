@@ -340,7 +340,7 @@ const DoctorDashboard = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setActiveTab('vitals')}
                 className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
@@ -348,6 +348,14 @@ const DoctorDashboard = () => {
                 }`}
               >
                 <Activity className="w-3.5 h-3.5" /> Vitals & Trends ({unlockedFile.vitals_history.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('history')}
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                  activeTab === 'history' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-900 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Heart className="w-3.5 h-3.5" /> Medical History Questionnaire
               </button>
               <button
                 onClick={() => setActiveTab('notes')}
@@ -492,7 +500,163 @@ const DoctorDashboard = () => {
             </div>
           )}
 
-          {/* TAB 2: Clinical History & Prescriptions */}
+          {/* TAB: Medical History Questionnaire (From User Registration) */}
+          {activeTab === 'history' && (
+            <div className="space-y-6">
+              {unlockedFile.patient.medical_history ? (
+                <div className="space-y-6">
+                  
+                  {/* Grid 1: Chronic Conditions & Family Medical History */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    {/* Past Chronic Conditions */}
+                    <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
+                      <div className="flex items-center gap-2.5 pb-3 border-b border-slate-800">
+                        <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400">
+                          <Heart className="w-4 h-4" />
+                        </div>
+                        <h4 className="text-sm font-bold text-white uppercase tracking-wider">Past Chronic Conditions</h4>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.isArray(unlockedFile.patient.medical_history.past_medical_issues) && unlockedFile.patient.medical_history.past_medical_issues.length > 0 ? (
+                          unlockedFile.patient.medical_history.past_medical_issues.map((cond, idx) => (
+                            <span key={idx} className="px-3 py-1.5 rounded-xl bg-blue-500/10 text-blue-300 border border-blue-500/20 text-xs font-semibold">
+                              {cond}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-slate-400">No chronic conditions reported.</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Family Medical History */}
+                    <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
+                      <div className="flex items-center gap-2.5 pb-3 border-b border-slate-800">
+                        <div className="p-2 rounded-xl bg-purple-500/20 text-purple-400">
+                          <Activity className="w-4 h-4" />
+                        </div>
+                        <h4 className="text-sm font-bold text-white uppercase tracking-wider">Family Medical History</h4>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.isArray(unlockedFile.patient.medical_history.family_medical_history) && unlockedFile.patient.medical_history.family_medical_history.length > 0 ? (
+                          unlockedFile.patient.medical_history.family_medical_history.map((hist, idx) => (
+                            <span key={idx} className="px-3 py-1.5 rounded-xl bg-purple-500/10 text-purple-300 border border-purple-500/20 text-xs font-semibold">
+                              {hist}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-slate-400">No family hereditary history reported.</span>
+                        )}
+                      </div>
+                      {unlockedFile.patient.medical_history.family_role && (
+                        <div className="pt-2 border-t border-slate-800/80 text-xs text-slate-300">
+                          <span className="text-slate-500 font-semibold block mb-0.5">Role of Family / Support:</span>
+                          <span className="text-purple-300 font-medium">{unlockedFile.patient.medical_history.family_role}</span>
+                        </div>
+                      )}
+                    </div>
+
+                  </div>
+
+                  {/* Grid 2: Surgeries & Allergies */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    
+                    {/* Past Surgeries */}
+                    <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
+                      <div className="flex items-center gap-2.5 pb-3 border-b border-slate-800">
+                        <div className="p-2 rounded-xl bg-amber-500/20 text-amber-400">
+                          <FileText className="w-4 h-4" />
+                        </div>
+                        <h4 className="text-sm font-bold text-white uppercase tracking-wider">Surgeries & Hospitalizations</h4>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.isArray(unlockedFile.patient.medical_history.surgeries_and_hospitalizations) && unlockedFile.patient.medical_history.surgeries_and_hospitalizations.length > 0 ? (
+                          unlockedFile.patient.medical_history.surgeries_and_hospitalizations.map((surg, idx) => (
+                            <span key={idx} className="px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-300 border border-amber-500/20 text-xs font-semibold">
+                              {surg}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-slate-400">No past surgeries recorded.</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Known Allergies */}
+                    <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
+                      <div className="flex items-center gap-2.5 pb-3 border-b border-slate-800">
+                        <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400">
+                          <AlertCircle className="w-4 h-4" />
+                        </div>
+                        <h4 className="text-sm font-bold text-white uppercase tracking-wider">Known Allergies</h4>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {Array.isArray(unlockedFile.patient.medical_history.known_allergies) && unlockedFile.patient.medical_history.known_allergies.length > 0 ? (
+                          unlockedFile.patient.medical_history.known_allergies.map((allg, idx) => (
+                            <span key={idx} className="px-3 py-1.5 rounded-xl bg-rose-500/10 text-rose-300 border border-rose-500/20 text-xs font-semibold">
+                              {allg}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-slate-400">No drug or food allergies recorded.</span>
+                        )}
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Grid 3: Lifestyle & Current Medications */}
+                  <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4">
+                    <h4 className="text-sm font-bold text-white uppercase tracking-wider pb-3 border-b border-slate-800">
+                      Lifestyle Profile & Ongoing Medications
+                    </h4>
+                    
+                    {unlockedFile.patient.medical_history.lifestyle && (
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                        <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
+                          <span className="text-slate-400 block mb-1">Smoking</span>
+                          <span className="font-semibold text-white">{unlockedFile.patient.medical_history.lifestyle.smoking || 'N/A'}</span>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
+                          <span className="text-slate-400 block mb-1">Alcohol</span>
+                          <span className="font-semibold text-white">{unlockedFile.patient.medical_history.lifestyle.alcohol || 'N/A'}</span>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
+                          <span className="text-slate-400 block mb-1">Physical Activity</span>
+                          <span className="font-semibold text-white">{unlockedFile.patient.medical_history.lifestyle.physical_activity || 'N/A'}</span>
+                        </div>
+                        <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800">
+                          <span className="text-slate-400 block mb-1">Diet</span>
+                          <span className="font-semibold text-white">{unlockedFile.patient.medical_history.lifestyle.diet || 'N/A'}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                      <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Ongoing Medications</span>
+                        <p className="text-xs text-teal-300 font-medium">{unlockedFile.patient.medical_history.current_medications || 'None recorded'}</p>
+                      </div>
+                      <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
+                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block mb-1">Registrar Intake Notes</span>
+                        <p className="text-xs text-slate-300">{unlockedFile.patient.medical_history.intake_notes || 'No remarks.'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              ) : (
+                <div className="p-12 text-center rounded-3xl glass-panel border border-slate-800 space-y-3">
+                  <Heart className="w-10 h-10 text-slate-500 mx-auto" />
+                  <p className="text-sm font-semibold text-slate-300">No medical questionnaire recorded for this patient.</p>
+                  <p className="text-xs text-slate-400">The patient was registered with basic demographics or before questionnaire sync.</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 3: Clinical History & Prescriptions */}
           {activeTab === 'notes' && (
             <div className="space-y-4">
               {unlockedFile.clinical_history.length === 0 ? (

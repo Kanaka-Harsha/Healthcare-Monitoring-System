@@ -5,6 +5,7 @@ import { SyncProvider } from './context/SyncContext';
 import Navbar from './components/common/Navbar';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
+import UserRegistrationPage from './pages/registrar/UserRegistrationPage';
 import CollectorDashboard from './pages/collector/CollectorDashboard';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
 import PatientDashboard from './pages/patient/PatientDashboard';
@@ -16,6 +17,7 @@ const HomeRedirect = () => {
   if (user.role === 'admin') return <Navigate to="/admin" replace />;
   if (user.role === 'doctor') return <Navigate to="/doctor" replace />;
   if (user.role === 'collector') return <Navigate to="/collector" replace />;
+  if (user.role === 'registrar') return <Navigate to="/registration" replace />;
   if (user.role === 'patient') return <Navigate to="/patient" replace />;
   return <Navigate to="/login" replace />;
 };
@@ -31,11 +33,21 @@ function App() {
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
                 
-                {/* Data Collector Role Route */}
+                {/* 1. User Registration (New User) Role Route */}
+                <Route
+                  path="/registration"
+                  element={
+                    <ProtectedRoute allowedRoles={['registrar', 'collector', 'doctor', 'admin']}>
+                      <UserRegistrationPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* 2. Healthcamps / Assistant Scan Role Route */}
                 <Route
                   path="/collector"
                   element={
-                    <ProtectedRoute allowedRoles={['collector', 'admin']}>
+                    <ProtectedRoute allowedRoles={['collector', 'registrar', 'doctor', 'admin']}>
                       <CollectorDashboard />
                     </ProtectedRoute>
                   }

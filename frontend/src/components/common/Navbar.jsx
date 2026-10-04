@@ -24,12 +24,18 @@ const Navbar = () => {
       case 'collector':
         return (
           <span className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">
-            <Smartphone className="w-3.5 h-3.5" /> Data Collector
+            <Smartphone className="w-3.5 h-3.5" /> Assistant / Healthcamp
+          </span>
+        );
+      case 'registrar':
+        return (
+          <span className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+            <User className="w-3.5 h-3.5" /> User Registration
           </span>
         );
       case 'patient':
         return (
-          <span className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+          <span className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
             <User className="w-3.5 h-3.5" /> Patient
           </span>
         );
