@@ -9,6 +9,16 @@ def init_db():
     db_logger.info("Initializing database tables...")
     db_logger.info("[DB INIT] Connecting to Supabase PostgreSQL and creating schema tables...")
     Base.metadata.create_all(bind=engine)
+    
+    # Auto-migrate existing tables for any added columns
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS medical_history JSON;"))
+            conn.commit()
+    except Exception as me:
+        db_logger.warning(f"[DB MIGRATION] Migration check notice: {me}")
+    
     db_logger.info("[DB INIT] Schema tables created successfully.")
 
     db = SessionLocal()

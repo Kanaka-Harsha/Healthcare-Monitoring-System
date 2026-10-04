@@ -23,10 +23,11 @@ class Settings(BaseSettings):
     CORS_ORIGINS: Union[str, List[str]] = "http://localhost:3000,http://localhost:5173,https://healthcare-monitoring-system.vercel.app"
     VERCEL_FRONTEND_URL: str = "https://healthcare-monitoring-system.vercel.app"
     
-    # OTP
-    DEV_OTP_MODE: bool = True
-    DEFAULT_DEV_OTP: str = "123456"
+    # OTP & SMS Gateway (Fast2SMS)
+    DEV_OTP_MODE: bool = False
+    DEFAULT_DEV_OTP: str = ""
     OTP_EXPIRY_MINUTES: int = 10
+    FAST2SMS_API_KEY: str = ""
     
     # Seed Admin
     DEFAULT_ADMIN_EMAIL: str = "admin@healthcare.local"
