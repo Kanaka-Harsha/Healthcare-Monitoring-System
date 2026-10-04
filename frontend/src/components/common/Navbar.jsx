@@ -9,13 +9,13 @@ const Navbar = () => {
   const getRoleLabel = (role) => {
     switch (role) {
       case 'admin':
-        return 'System Administrator';
+        return 'Administrator';
       case 'doctor':
-        return 'Medical Doctor';
+        return 'Doctor';
       case 'collector':
         return 'Healthcamp Assistant';
       case 'registrar':
-        return 'User Registration';
+        return 'Registration Desk';
       case 'patient':
         return 'Patient';
       default:
@@ -38,10 +38,10 @@ const Navbar = () => {
                 SwastGrama
               </span>
               <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-teal-50 text-teal-800 border border-teal-200">
-                Rural Healthcare
+                Village Health
               </span>
             </div>
-            <p className="text-xs text-slate-500 hidden sm:block">Community Healthcare & Medical Records</p>
+            <p className="text-xs text-slate-500 hidden sm:block">Community Healthcare & Patient Records</p>
           </div>
         </div>
 
@@ -49,23 +49,23 @@ const Navbar = () => {
         {user && (
           <div className="flex items-center gap-3 sm:gap-4">
             
-            {/* Online / Offline Text Indicator */}
+            {/* Status Indicator */}
             <div className={`px-2.5 py-1 rounded text-xs font-medium border ${
               isOnline 
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
                 : 'bg-amber-50 text-amber-800 border-amber-200'
             }`}>
-              {isOnline ? 'System Online' : 'Offline Mode'}
+              {isOnline ? 'Connected' : 'Offline (Saved on Device)'}
             </div>
 
-            {/* Offline Sync Status */}
+            {/* Offline Records Button */}
             {pendingCount > 0 && (
               <button
                 onClick={triggerSync}
                 disabled={!isOnline || isSyncing}
                 className="px-2.5 py-1 text-xs font-semibold rounded bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition disabled:opacity-50"
               >
-                {isSyncing ? 'Syncing...' : `${pendingCount} Records Pending Sync`}
+                {isSyncing ? 'Sending...' : `${pendingCount} Unsent Records (Send Now)`}
               </button>
             )}
 

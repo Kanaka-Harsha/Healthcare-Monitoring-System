@@ -121,7 +121,7 @@ const CollectorDashboard = () => {
         await api.post('/collector/vitals', payload);
         setNotification({
           type: 'success',
-          message: `Screening for ${fullName} uploaded directly to server and database.`
+          message: `Screening for ${fullName} saved to patient health record.`
         });
         resetForm();
         fetchHistory();
@@ -130,13 +130,13 @@ const CollectorDashboard = () => {
           await enqueueRecord(payload);
           setNotification({
             type: 'warning',
-            message: 'Connection offline: Screening saved to offline queue and will auto-sync when online.'
+            message: 'No internet connection: Screening safely saved on this device. It will upload when connected.'
           });
           resetForm();
         } else {
           setNotification({
             type: 'error',
-            message: extractErrorMessage(err, 'Failed to submit screening. Please verify form inputs.')
+            message: extractErrorMessage(err, 'Failed to submit screening. Please check form details.')
           });
         }
       } finally {
@@ -146,7 +146,7 @@ const CollectorDashboard = () => {
       await enqueueRecord(payload);
       setNotification({
         type: 'warning',
-        message: 'Offline Mode: Screening saved securely in local storage. Will auto-sync when online.'
+        message: 'Saved on this device. It will automatically upload when connected.'
       });
       resetForm();
       setSubmitting(false);
@@ -205,7 +205,7 @@ const CollectorDashboard = () => {
               disabled={!isOnline}
               className="px-3 py-1.5 rounded text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition"
             >
-              Sync {pendingCount} Offline
+              Send {pendingCount} Saved Records
             </button>
           )}
         </div>
@@ -441,12 +441,12 @@ const CollectorDashboard = () => {
                 {submitting ? (
                   <>
                     <span className="spinner-white"></span>
-                    <span>Saving screening to database...</span>
+                    <span>Saving patient screening...</span>
                   </>
                 ) : isOnline ? (
-                  'Submit & Save Screening'
+                  'Save Patient Screening'
                 ) : (
-                  'Save to Offline Storage'
+                  'Save on This Device (Offline)'
                 )}
               </button>
             </div>

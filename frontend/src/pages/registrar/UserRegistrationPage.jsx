@@ -240,7 +240,7 @@ const UserRegistrationPage = () => {
           <div className="flex items-center justify-between border-b border-emerald-200 pb-3 mb-3">
             <div>
               <h2 className="text-base font-bold text-emerald-950">Patient Record Created Successfully</h2>
-              <p className="text-xs text-emerald-800">Patient ID: {createdPatient.id}</p>
+              <p className="text-xs text-emerald-800">Patient Number: {createdPatient.id}</p>
             </div>
             <span className="text-xs font-semibold px-2 py-1 rounded bg-emerald-200 text-emerald-900">
               Active Record
@@ -676,7 +676,7 @@ const UserRegistrationPage = () => {
             {submitting ? (
               <>
                 <span className="spinner-white"></span>
-                <span>Saving Patient Record to Database...</span>
+                <span>Saving Patient Record...</span>
               </>
             ) : (
               'Submit Patient Registration & Health History'

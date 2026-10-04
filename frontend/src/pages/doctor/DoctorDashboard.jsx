@@ -16,7 +16,6 @@ const DoctorDashboard = () => {
   const [patientPhone, setPatientPhone] = useState('');
   const [otpSent, setOtpSent] = useState(false);
   const [maskedPatientName, setMaskedPatientName] = useState('');
-  const [devOtpHint, setDevOtpHint] = useState('');
   
   // Step 2: Verify OTP
   const [otpCode, setOtpCode] = useState('');
@@ -54,10 +53,6 @@ const DoctorDashboard = () => {
         setOtpSent(true);
         setMaskedPatientName(res.data.patient_name_masked);
         setSuccessMsg(res.data.message);
-        if (res.data.dev_otp) {
-          setDevOtpHint(res.data.dev_otp);
-          setOtpCode(res.data.dev_otp);
-        }
       }
     } catch (err) {
       setErrorMsg(extractErrorMessage(err, 'Patient not found or failed to dispatch OTP.'));
@@ -244,13 +239,8 @@ const DoctorDashboard = () => {
           ) : (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
               <div className="p-3 rounded bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-1">
-                <p>Code dispatched to: <strong>+91 {patientPhone}</strong></p>
+                <p>Verification code dispatched to: <strong>+91 {patientPhone}</strong></p>
                 {maskedPatientName && <p>Patient: <strong>{maskedPatientName}</strong></p>}
-                {devOtpHint && (
-                  <p className="font-mono text-slate-600 text-[11px] pt-0.5">
-                    Testing Code: <strong>{devOtpHint}</strong>
-                  </p>
-                )}
               </div>
 
               <div>

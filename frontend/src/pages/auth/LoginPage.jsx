@@ -17,7 +17,6 @@ const LoginPage = () => {
   const [patientPhone, setPatientPhone] = useState('');
   const [patientOtp, setPatientOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
-  const [devOtpHint, setDevOtpHint] = useState('');
   const [patientError, setPatientError] = useState('');
   const [patientSuccessMsg, setPatientSuccessMsg] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
@@ -58,10 +57,6 @@ const LoginPage = () => {
       if (res.data.success) {
         setOtpSent(true);
         setPatientSuccessMsg(`Verification code sent to +91 ${clean}`);
-        if (res.data.dev_otp) {
-          setDevOtpHint(res.data.dev_otp);
-          setPatientOtp(res.data.dev_otp);
-        }
       }
     } catch (err) {
       setPatientError(extractErrorMessage(err, 'Failed to send OTP. Make sure your phone number is registered.'));
@@ -298,12 +293,7 @@ const LoginPage = () => {
                 
                 {patientSuccessMsg && (
                   <div className="p-3 rounded bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-medium">
-                    <div>{patientSuccessMsg}</div>
-                    {devOtpHint && (
-                      <div className="mt-1 text-slate-600 font-mono text-[11px]">
-                        Testing Code: <strong>{devOtpHint}</strong>
-                      </div>
-                    )}
+                    {patientSuccessMsg}
                   </div>
                 )}
 
