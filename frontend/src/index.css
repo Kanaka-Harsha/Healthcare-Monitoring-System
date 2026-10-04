@@ -4,62 +4,67 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 font-sans antialiased;
+    @apply bg-slate-50 text-slate-800 font-sans antialiased selection:bg-teal-100 selection:text-teal-900;
+  }
+
+  input, select, textarea {
+    @apply transition-colors duration-150;
   }
 }
 
-/* Custom Glassmorphism & Medical Glows */
-.glass-panel {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+/* Light Surface Utility Classes */
+.card-clean {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
-.glass-card {
-  background: rgba(30, 41, 59, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+.card-header {
+  border-bottom: 1px solid #f1f5f9;
+  padding: 1rem 1.25rem;
+  background-color: #f8fafc;
 }
 
-.glow-teal {
-  box-shadow: 0 0 25px -5px rgba(20, 184, 166, 0.25);
+/* Subtle Spinner for Responsive State Feedback */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.glow-rose {
-  box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.25);
+.spinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(15, 118, 110, 0.2);
+  border-top-color: #0f766e;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
 }
 
-.glow-blue {
-  box-shadow: 0 0 25px -5px rgba(56, 189, 248, 0.25);
+.spinner-white {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
 }
 
-/* Heartbeat ECG Pulse Animation */
-@keyframes heartbeat {
-  0% { transform: scale(1); }
-  14% { transform: scale(1.15); }
-  28% { transform: scale(1); }
-  42% { transform: scale(1.25); }
-  70% { transform: scale(1); }
-}
-
-.animate-heartbeat {
-  animation: heartbeat 1.3s infinite ease-in-out;
-}
-
-/* Custom Scrollbar */
+/* Custom Clean Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.5);
+  background: #f1f5f9;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(100, 116, 139, 0.5);
-  border-radius: 9999px;
+  background: #cbd5e1;
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.8);
+  background: #94a3b8;
 }

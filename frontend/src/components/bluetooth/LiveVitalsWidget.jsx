@@ -1,22 +1,18 @@
 import React from 'react';
-import { Heart, Activity, Wind, Thermometer, Droplet, Bluetooth, ArrowDownRight, Check } from 'lucide-react';
 
 const LiveVitalsWidget = ({ vitals, isConnected, onApplyToForm, onOpenModal }) => {
   if (!isConnected || !vitals) {
     return (
-      <div className="p-6 rounded-2xl glass-card border border-dashed border-slate-800 text-center flex flex-col items-center justify-center">
-        <div className="w-12 h-12 rounded-2xl bg-teal-500/10 text-teal-400 border border-teal-500/20 flex items-center justify-center mb-3">
-          <Bluetooth className="w-6 h-6" />
-        </div>
-        <h4 className="text-sm font-bold text-white">No Medical Device Connected</h4>
-        <p className="text-xs text-slate-400 max-w-sm mt-1">
-          Connect your wireless medical device or start virtual demo device to stream patient vitals.
+      <div className="p-5 rounded bg-white border border-slate-200 text-center flex flex-col items-center justify-center">
+        <h4 className="text-sm font-bold text-slate-800">No Medical Health Device Connected</h4>
+        <p className="text-xs text-slate-600 max-w-sm mt-1">
+          Connect your wireless medical screening device to automatically capture patient vital signs.
         </p>
         <button
           onClick={onOpenModal}
-          className="mt-4 px-4 py-2 text-xs font-bold rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 transition flex items-center gap-2 shadow-lg shadow-teal-500/20"
+          className="mt-3 px-4 py-1.5 text-xs font-semibold rounded bg-teal-800 hover:bg-teal-900 text-white transition shadow-sm"
         >
-          <Bluetooth className="w-3.5 h-3.5" /> Connect Device
+          Connect Medical Device
         </button>
       </div>
     );
@@ -24,36 +20,35 @@ const LiveVitalsWidget = ({ vitals, isConnected, onApplyToForm, onOpenModal }) =
 
   // Calculate BP Category
   const getBPCategory = (sys, dia) => {
-    if (!sys || !dia) return { label: 'Unknown', color: 'text-slate-400' };
-    if (sys < 120 && dia < 80) return { label: 'Optimal', color: 'text-emerald-400' };
-    if (sys <= 129 && dia < 80) return { label: 'Elevated', color: 'text-amber-400' };
-    if (sys <= 139 || dia <= 89) return { label: 'Stage 1 Hypertension', color: 'text-orange-400' };
-    return { label: 'Stage 2 Hypertension', color: 'text-rose-400' };
+    if (!sys || !dia) return { label: 'Unknown', color: 'text-slate-600' };
+    if (sys < 120 && dia < 80) return { label: 'Normal', color: 'text-emerald-700' };
+    if (sys <= 129 && dia < 80) return { label: 'Elevated', color: 'text-amber-700' };
+    if (sys <= 139 || dia <= 89) return { label: 'Stage 1 High BP', color: 'text-orange-700' };
+    return { label: 'Stage 2 High BP', color: 'text-rose-700' };
   };
 
   const bpCat = getBPCategory(vitals.systolic_bp, vitals.diastolic_bp);
 
   return (
-    <div className="p-5 rounded-2xl glass-panel border border-slate-800 space-y-4">
+    <div className="p-4 rounded bg-white border border-teal-200 space-y-3 shadow-sm">
       
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-500"></span>
-          </span>
-          <h4 className="text-sm font-bold text-white tracking-wide uppercase">Live Patient Vitals Stream</h4>
+      <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+          <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wide">
+            Live Health Device Readings
+          </h4>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold text-slate-400 px-2 py-0.5 rounded bg-slate-900 border border-slate-800">
-            {vitals.device_id || 'Medical Device'}
+          <span className="text-xs text-slate-600 px-2 py-0.5 rounded bg-slate-100 border border-slate-200">
+            Device: {vitals.device_id || 'Connected Device'}
           </span>
           <button
             onClick={onOpenModal}
-            className="p-1 text-xs text-teal-400 hover:text-teal-300 transition underline font-medium"
+            className="text-xs text-teal-800 hover:underline font-medium"
           >
-            Change
+            Change Device
           </button>
         </div>
       </div>
@@ -62,72 +57,60 @@ const LiveVitalsWidget = ({ vitals, isConnected, onApplyToForm, onOpenModal }) =
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         
         {/* Blood Pressure */}
-        <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 relative overflow-hidden group hover:border-slate-700 transition">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-xs font-semibold">Blood Pressure</span>
-            <Activity className="w-4 h-4 text-cyan-400" />
-          </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-xl font-extrabold text-white">
+        <div className="p-3 rounded bg-slate-50 border border-slate-200">
+          <span className="text-xs font-medium text-slate-600 block">Blood Pressure</span>
+          <div className="flex items-baseline gap-1 mt-0.5">
+            <span className="text-lg font-bold text-slate-900">
               {vitals.systolic_bp ?? '--'} / {vitals.diastolic_bp ?? '--'}
             </span>
-            <span className="text-[10px] text-slate-400 font-medium">mmHg</span>
+            <span className="text-xs text-slate-500">mmHg</span>
           </div>
-          <div className="mt-1 text-[10px] font-bold">
-            <span className={bpCat.color}>{bpCat.label}</span>
+          <div className={`mt-0.5 text-xs font-semibold ${bpCat.color}`}>
+            {bpCat.label}
           </div>
         </div>
 
         {/* Heart Rate */}
-        <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 relative overflow-hidden group hover:border-slate-700 transition">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-xs font-semibold">Heart Rate</span>
-            <Heart className="w-4 h-4 text-rose-400 animate-heartbeat" />
+        <div className="p-3 rounded bg-slate-50 border border-slate-200">
+          <span className="text-xs font-medium text-slate-600 block">Pulse Rate</span>
+          <div className="flex items-baseline gap-1 mt-0.5">
+            <span className="text-lg font-bold text-slate-900">{vitals.heart_rate ?? '--'}</span>
+            <span className="text-xs text-slate-500">BPM</span>
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-xl font-extrabold text-white">{vitals.heart_rate ?? '--'}</span>
-            <span className="text-[10px] text-slate-400 font-medium">BPM</span>
-          </div>
-          <div className="mt-1 text-[10px] font-bold text-emerald-400">
-            {vitals.heart_rate ? (vitals.heart_rate > 100 ? 'Tachycardia' : vitals.heart_rate < 60 ? 'Bradycardia' : 'Normal Sinus') : 'Waiting...'}
+          <div className="mt-0.5 text-xs font-semibold text-slate-700">
+            {vitals.heart_rate ? (vitals.heart_rate > 100 ? 'High Pulse' : vitals.heart_rate < 60 ? 'Low Pulse' : 'Normal') : 'Reading...'}
           </div>
         </div>
 
         {/* SpO2 */}
-        <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 relative overflow-hidden group hover:border-slate-700 transition">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-xs font-semibold">Oxygen SpO2</span>
-            <Wind className="w-4 h-4 text-teal-400" />
+        <div className="p-3 rounded bg-slate-50 border border-slate-200">
+          <span className="text-xs font-medium text-slate-600 block">Oxygen (SpO2)</span>
+          <div className="flex items-baseline gap-1 mt-0.5">
+            <span className="text-lg font-bold text-slate-900">{vitals.spo2 ?? '--'}</span>
+            <span className="text-xs text-slate-500">%</span>
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-xl font-extrabold text-white">{vitals.spo2 ?? '--'}</span>
-            <span className="text-[10px] text-slate-400 font-medium">%</span>
-          </div>
-          <div className="mt-1 text-[10px] font-bold">
+          <div className="mt-0.5 text-xs font-semibold">
             {vitals.spo2 ? (
               vitals.spo2 >= 95 ? (
-                <span className="text-emerald-400">Optimal</span>
+                <span className="text-emerald-700">Normal</span>
               ) : (
-                <span className="text-rose-400">Hypoxemia Alert</span>
+                <span className="text-rose-700">Low Oxygen</span>
               )
             ) : (
-              <span className="text-slate-400">--</span>
+              <span className="text-slate-500">--</span>
             )}
           </div>
         </div>
 
-        {/* Temperature & Glucose */}
-        <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 relative overflow-hidden group hover:border-slate-700 transition">
-          <div className="flex items-center justify-between text-slate-400 mb-1">
-            <span className="text-xs font-semibold">Temp / Glucose</span>
-            <Thermometer className="w-4 h-4 text-amber-400" />
+        {/* Temperature */}
+        <div className="p-3 rounded bg-slate-50 border border-slate-200">
+          <span className="text-xs font-medium text-slate-600 block">Body Temperature</span>
+          <div className="flex items-baseline gap-1 mt-0.5">
+            <span className="text-lg font-bold text-slate-900">{vitals.temperature ?? '36.6'}</span>
+            <span className="text-xs text-slate-500">°C</span>
           </div>
-          <div className="flex items-baseline gap-1">
-            <span className="text-xl font-extrabold text-white">{vitals.temperature ?? '36.6'}</span>
-            <span className="text-[10px] text-slate-400 font-medium">°C</span>
-          </div>
-          <div className="mt-1 text-[10px] font-bold text-slate-400">
-            {vitals.blood_glucose ? `${vitals.blood_glucose} mg/dL` : 'Normal'}
+          <div className="mt-0.5 text-xs font-semibold text-slate-700">
+            {vitals.blood_glucose ? `Glucose: ${vitals.blood_glucose} mg/dL` : 'Normal Range'}
           </div>
         </div>
 
@@ -136,9 +119,9 @@ const LiveVitalsWidget = ({ vitals, isConnected, onApplyToForm, onOpenModal }) =
       {/* Transfer to Form Button */}
       <button
         onClick={() => onApplyToForm(vitals)}
-        className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition shadow-lg shadow-teal-500/10"
+        className="w-full py-2 px-3 rounded bg-teal-800 hover:bg-teal-900 text-white font-semibold text-xs flex items-center justify-center gap-2 transition"
       >
-        <ArrowDownRight className="w-4 h-4 stroke-[2.5]" /> Capture Live Readings Into Intake Form
+        Transfer Live Readings Into Screening Form
       </button>
 
     </div>

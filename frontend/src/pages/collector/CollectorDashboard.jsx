@@ -4,24 +4,6 @@ import { useSync } from '../../context/SyncContext';
 import bluetoothService from '../../services/bluetoothService';
 import BluetoothModal from '../../components/bluetooth/BluetoothModal';
 import LiveVitalsWidget from '../../components/bluetooth/LiveVitalsWidget';
-import { 
-  UserPlus, 
-  Smartphone, 
-  Bluetooth, 
-  CheckCircle2, 
-  AlertCircle, 
-  Clock, 
-  RefreshCw, 
-  Search, 
-  Activity, 
-  Send, 
-  Wifi, 
-  WifiOff, 
-  History, 
-  ShieldCheck,
-  Heart,
-  Wind
-} from 'lucide-react';
 
 const CollectorDashboard = () => {
   const { isOnline, pendingCount, triggerSync, enqueueRecord } = useSync();
@@ -90,7 +72,7 @@ const CollectorDashboard = () => {
 
     setNotification({
       type: 'success',
-      message: 'ESP32 Live Vitals transferred into screening form successfully!'
+      message: 'Live vitals transferred into screening form successfully.'
     });
     setTimeout(() => setNotification(null), 3000);
   };
@@ -139,21 +121,19 @@ const CollectorDashboard = () => {
         await api.post('/collector/vitals', payload);
         setNotification({
           type: 'success',
-          message: `Screening for ${fullName} uploaded directly to server & database!`
+          message: `Screening for ${fullName} uploaded directly to server and database.`
         });
         resetForm();
         fetchHistory();
       } catch (err) {
         if (!err.response || err.message === 'Network Error' || err.code === 'ECONNABORTED') {
-          // Real network offline failure -> enqueue for offline sync
           await enqueueRecord(payload);
           setNotification({
             type: 'warning',
-            message: 'Network offline: Screening safely saved to offline queue and will auto-sync when online.'
+            message: 'Connection offline: Screening saved to offline queue and will auto-sync when online.'
           });
           resetForm();
         } else {
-          // Specific server or validation error -> show exact message on UI
           setNotification({
             type: 'error',
             message: extractErrorMessage(err, 'Failed to submit screening. Please verify form inputs.')
@@ -163,7 +143,6 @@ const CollectorDashboard = () => {
         setSubmitting(false);
       }
     } else {
-      // Offline mode: store directly in local storage / IndexedDB
       await enqueueRecord(payload);
       setNotification({
         type: 'warning',
@@ -193,44 +172,40 @@ const CollectorDashboard = () => {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
       
-      {/* Top Banner & BLE Trigger */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-3xl glass-panel border border-slate-800">
+      {/* Top Banner & Device Trigger */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded bg-white border border-slate-200 shadow-sm">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-white tracking-tight">Healthcamp & Assistant Screening</h1>
-            <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 text-xs font-bold">
-              Healthcamp Desk
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
+          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-teal-100 text-teal-800">
+            SwastGrama - Healthcamp & Assistant Scan
+          </span>
+          <h1 className="text-xl font-bold text-slate-900 mt-1">Healthcamp Vitals Screening</h1>
+          <p className="text-xs text-slate-600">
             Record patient vital signs and capture wireless readings from medical health devices.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setIsBluetoothModalOpen(true)}
-            className={`px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition shadow-lg ${
+            className={`px-3 py-1.5 rounded text-xs font-semibold transition ${
               isBLEConnected
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30'
-                : 'bg-teal-500 hover:bg-teal-400 text-slate-950 shadow-teal-500/20'
+                ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                : 'bg-teal-800 hover:bg-teal-900 text-white'
             }`}
           >
-            <Bluetooth className={`w-4 h-4 ${isBLEConnected ? 'animate-pulse' : ''}`} />
-            <span>{isBLEConnected ? 'Device Connected' : 'Connect Medical Device'}</span>
+            {isBLEConnected ? 'Device Connected' : 'Connect Medical Device'}
           </button>
 
           {pendingCount > 0 && (
             <button
               onClick={triggerSync}
               disabled={!isOnline}
-              className="px-4 py-2.5 rounded-xl font-bold text-xs bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition flex items-center gap-2"
+              className="px-3 py-1.5 rounded text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              <span>Sync {pendingCount} Offline</span>
+              Sync {pendingCount} Offline
             </button>
           )}
         </div>
@@ -238,23 +213,18 @@ const CollectorDashboard = () => {
 
       {/* Notifications */}
       {notification && (
-        <div className={`p-4 rounded-2xl border flex items-start gap-3 text-sm animate-fadeIn ${
+        <div className={`p-3 rounded text-xs font-medium border ${
           notification.type === 'success' 
-            ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-200' 
+            ? 'bg-emerald-50 border-emerald-300 text-emerald-900' 
             : notification.type === 'warning'
-            ? 'bg-amber-500/20 border-amber-500/30 text-amber-200'
-            : 'bg-rose-500/20 border-rose-500/30 text-rose-200'
+            ? 'bg-amber-50 border-amber-300 text-amber-900'
+            : 'bg-rose-50 border-rose-300 text-rose-900'
         }`}>
-          {notification.type === 'success' ? (
-            <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-emerald-400 mt-0.5" />
-          ) : (
-            <AlertCircle className="w-5 h-5 flex-shrink-0 text-amber-400 mt-0.5" />
-          )}
-          <span>{notification.message}</span>
+          {notification.message}
         </div>
       )}
 
-      {/* Live ESP32 Telemetry Widget */}
+      {/* Live Vitals Widget */}
       <LiveVitalsWidget
         vitals={liveVitals}
         isConnected={isBLEConnected}
@@ -263,79 +233,76 @@ const CollectorDashboard = () => {
       />
 
       {/* Main Grid: Screening Form & History */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
         {/* Left Col: Patient Intake & Vitals Form (7 Cols) */}
-        <div className="lg:col-span-7 glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6">
-          <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-teal-500/20 text-teal-400 border border-teal-500/30">
-                <UserPlus className="w-5 h-5" />
-              </div>
-              <h2 className="text-base sm:text-lg font-bold text-white">Patient Intake & Vitals Entry</h2>
-            </div>
-            <span className="text-[11px] font-semibold text-slate-400 flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-teal-400" /> Aadhaar Auto-Masked
+        <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded border border-slate-200 shadow-sm space-y-5">
+          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+              Patient Screening Form
+            </h2>
+            <span className="text-xs text-slate-500">
+              Aadhaar ID Auto-Masked
             </span>
           </div>
 
-          <form onSubmit={handleSubmitScreening} className="space-y-5">
+          <form onSubmit={handleSubmitScreening} className="space-y-4">
             
             {/* 1. Demographics */}
-            <div className="space-y-4">
-              <h3 className="text-xs uppercase font-bold tracking-wider text-teal-400">
-                1. Patient Demographics (Manual)
+            <div className="space-y-3">
+              <h3 className="text-xs font-bold text-slate-700 uppercase">
+                1. Patient Information
               </h3>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Patient Full Name *
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Full Name *
                   </label>
                   <input
                     type="text"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Rajesh Kumar"
+                    placeholder="e.g. Ramesh Kumar"
                     required
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white text-sm focus:border-teal-500 focus:outline-none"
+                    className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:border-teal-700 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Phone Number (10 Digits) *
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Mobile Number (10 Digits) *
                   </label>
                   <input
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="e.g. 9876543210"
+                    placeholder="10-digit number"
                     maxLength={10}
                     required
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white text-sm focus:border-teal-500 focus:outline-none"
+                    className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:border-teal-700 focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
-                    Aadhaar Card Number (12 Digits) *
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Aadhaar Number (12 Digits) *
                   </label>
                   <input
                     type="text"
                     value={aadhaar}
                     onChange={(e) => setAadhaar(e.target.value)}
-                    placeholder="e.g. 5432 1098 7654"
+                    placeholder="12-digit Aadhaar"
                     maxLength={14}
                     required
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white text-sm font-mono focus:border-teal-500 focus:outline-none"
+                    className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm font-mono focus:border-teal-700 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Age & Gender
                   </label>
                   <div className="flex gap-2">
@@ -346,12 +313,12 @@ const CollectorDashboard = () => {
                       placeholder="Age"
                       min={0}
                       max={120}
-                      className="w-1/2 px-2.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white text-sm text-center focus:border-teal-500 focus:outline-none"
+                      className="w-1/2 px-2 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm text-center focus:border-teal-700 focus:outline-none"
                     />
                     <select
                       value={gender}
                       onChange={(e) => setGender(e.target.value)}
-                      className="w-1/2 px-2 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white text-xs focus:border-teal-500 focus:outline-none"
+                      className="w-1/2 px-2 py-2 rounded bg-white border border-slate-300 text-slate-900 text-xs focus:border-teal-700 focus:outline-none"
                     >
                       <option value="Male">Male</option>
                       <option value="Female">Female</option>
@@ -362,15 +329,15 @@ const CollectorDashboard = () => {
               </div>
             </div>
 
-            {/* 2. Vitals Telemetry */}
-            <div className="space-y-4 pt-4 border-t border-slate-800">
+            {/* 2. Vitals */}
+            <div className="space-y-3 pt-3 border-t border-slate-100">
               <div className="flex items-center justify-between">
-                <h3 className="text-xs uppercase font-bold tracking-wider text-cyan-400">
-                  2. Medical Vitals (Bluetooth / Manual)
+                <h3 className="text-xs font-bold text-slate-700 uppercase">
+                  2. Vital Signs (Readings)
                 </h3>
                 {isBLEConnected && (
-                  <span className="text-[11px] text-teal-400 font-semibold animate-pulse flex items-center gap-1">
-                    <Bluetooth className="w-3 h-3" /> Live Paired
+                  <span className="text-xs text-teal-800 font-semibold">
+                    Device Paired
                   </span>
                 )}
               </div>
@@ -378,46 +345,46 @@ const CollectorDashboard = () => {
               {/* BP & Heart Rate */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    Systolic BP (mmHg)
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Systolic BP
                   </label>
                   <input
                     type="number"
                     value={systolicBP}
                     onChange={(e) => setSystolicBP(e.target.value)}
                     placeholder="120"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none"
+                    className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    Diastolic BP (mmHg)
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Diastolic BP
                   </label>
                   <input
                     type="number"
                     value={diastolicBP}
                     onChange={(e) => setDiastolicBP(e.target.value)}
                     placeholder="80"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none"
+                    className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    Heart Rate (BPM)
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Pulse (BPM)
                   </label>
                   <input
                     type="number"
                     value={heartRate}
                     onChange={(e) => setHeartRate(e.target.value)}
                     placeholder="72"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none"
+                    className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     SpO2 Oxygen (%)
                   </label>
                   <input
@@ -425,8 +392,8 @@ const CollectorDashboard = () => {
                     step="0.1"
                     value={spo2}
                     onChange={(e) => setSpo2(e.target.value)}
-                    placeholder="98.5"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none"
+                    placeholder="98"
+                    className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
                   />
                 </div>
               </div>
@@ -434,7 +401,7 @@ const CollectorDashboard = () => {
               {/* Temp & Glucose */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Temperature (°C)
                   </label>
                   <input
@@ -443,12 +410,12 @@ const CollectorDashboard = () => {
                     value={temperature}
                     onChange={(e) => setTemperature(e.target.value)}
                     placeholder="36.6"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none"
+                    className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
                     Blood Glucose (mg/dL)
                   </label>
                   <input
@@ -457,7 +424,7 @@ const CollectorDashboard = () => {
                     value={bloodGlucose}
                     onChange={(e) => setBloodGlucose(e.target.value)}
                     placeholder="Optional (e.g. 110)"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none"
+                    className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
                   />
                 </div>
               </div>
@@ -469,15 +436,18 @@ const CollectorDashboard = () => {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-slate-950 font-extrabold text-sm transition shadow-xl shadow-teal-500/20 flex items-center justify-center gap-2.5 disabled:opacity-50"
+                className="w-full py-2.5 px-4 rounded bg-teal-800 hover:bg-teal-900 text-white font-semibold text-sm transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                <Send className="w-4 h-4 stroke-[2.5]" />
-                {submitting 
-                  ? 'Saving Screening...' 
-                  : isOnline 
-                  ? 'Submit & Upload Screening to Cloud DB' 
-                  : 'Save to Local Storage Queue (Offline)'
-                }
+                {submitting ? (
+                  <>
+                    <span className="spinner-white"></span>
+                    <span>Saving screening to database...</span>
+                  </>
+                ) : isOnline ? (
+                  'Submit & Save Screening'
+                ) : (
+                  'Save to Offline Storage'
+                )}
               </button>
             </div>
 
@@ -485,67 +455,61 @@ const CollectorDashboard = () => {
         </div>
 
         {/* Right Col: Collector History & Scanned Patients (5 Cols) */}
-        <div className="lg:col-span-5 glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 flex flex-col h-full">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-                <History className="w-5 h-5" />
-              </div>
-              <h3 className="text-base font-bold text-white">Scanned Patients</h3>
-            </div>
+        <div className="lg:col-span-5 bg-white p-5 rounded border border-slate-200 shadow-sm space-y-3 flex flex-col h-full">
+          <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+            <h3 className="text-sm font-bold text-slate-900">Scanned Patients</h3>
             <button
               onClick={fetchHistory}
               disabled={!isOnline || loadingHistory}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition"
+              className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition"
             >
-              <RefreshCw className={`w-4 h-4 ${loadingHistory ? 'animate-spin' : ''}`} />
+              {loadingHistory ? 'Refreshing...' : 'Refresh'}
             </button>
           </div>
 
           {/* Search Box */}
-          <div className="relative">
+          <div>
             <input
               type="text"
               value={historySearch}
               onChange={(e) => setHistorySearch(e.target.value)}
               placeholder="Search by name, phone or Aadhaar..."
-              className="w-full px-3.5 py-2 pl-9 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-teal-500"
+              className="w-full px-3 py-1.5 rounded bg-white border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
             />
-            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3" />
           </div>
 
           {/* Scanned Patients List */}
-          <div className="flex-1 overflow-y-auto space-y-3 max-h-[500px] pr-1">
+          <div className="flex-1 overflow-y-auto space-y-2.5 max-h-[460px] pr-1">
             {filteredHistory.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 text-xs">
+              <div className="p-6 text-center text-slate-500 text-xs">
                 {loadingHistory ? 'Loading history...' : 'No patients scanned yet.'}
               </div>
             ) : (
               filteredHistory.map((item) => (
-                <div key={item.id} className="p-3.5 rounded-2xl glass-card hover:border-slate-700 transition space-y-2">
+                <div key={item.id} className="p-3 rounded bg-slate-50 border border-slate-200 space-y-1.5">
                   <div className="flex items-start justify-between">
                     <div>
-                      <h4 className="text-sm font-bold text-white">{item.patient_name}</h4>
-                      <p className="text-[11px] text-slate-400">{item.patient_phone} • {item.patient_aadhaar_masked}</p>
+                      <h4 className="text-xs font-bold text-slate-900">{item.patient_name}</h4>
+                      <p className="text-[11px] text-slate-500">+91 {item.patient_phone} • {item.patient_aadhaar_masked}</p>
                     </div>
-                    <span className="text-[10px] text-slate-400 font-mono">
+                    <span className="text-[10px] text-slate-500 font-mono">
                       {new Date(item.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
 
-                  {/* Vitals Summary Pill */}
-                  <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-800/80 text-[11px]">
-                    <div className="text-slate-300">
-                      <span className="text-[10px] text-slate-500 block">BP:</span>
+                  {/* Vitals Summary */}
+                  <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200 text-[11px]">
+                    <div className="text-slate-700">
+                      <span className="text-[10px] text-slate-500 block">BP</span>
                       <strong>{item.systolic_bp || '--'}/{item.diastolic_bp || '--'}</strong>
                     </div>
-                    <div className="text-slate-300">
-                      <span className="text-[10px] text-slate-500 block">HR:</span>
-                      <strong className="text-rose-400">{item.heart_rate || '--'} BPM</strong>
+                    <div className="text-slate-700">
+                      <span className="text-[10px] text-slate-500 block">Pulse</span>
+                      <strong>{item.heart_rate || '--'} BPM</strong>
                     </div>
-                    <div className="text-slate-300">
-                      <span className="text-[10px] text-slate-500 block">SpO2:</span>
-                      <strong className="text-teal-400">{item.spo2 || '--'}%</strong>
+                    <div className="text-slate-700">
+                      <span className="text-[10px] text-slate-500 block">SpO2</span>
+                      <strong>{item.spo2 || '--'}%</strong>
                     </div>
                   </div>
                 </div>
