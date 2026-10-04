@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import api from '../services/api';
+import api, { extractErrorMessage } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
       }));
       return { success: true, role: data.role };
     } catch (error) {
-      const msg = error.response?.data?.detail || 'Login failed. Please check credentials.';
+      const msg = extractErrorMessage(error, 'Login failed. Please check your username/phone and password.');
       return { success: false, error: msg };
     } finally {
       setLoading(false);
@@ -72,7 +72,7 @@ export const AuthProvider = ({ children }) => {
       }));
       return { success: true, role: 'patient' };
     } catch (error) {
-      const msg = error.response?.data?.detail || 'Invalid or expired OTP.';
+      const msg = extractErrorMessage(error, 'Invalid or expired OTP. Please try again.');
       return { success: false, error: msg };
     } finally {
       setLoading(false);

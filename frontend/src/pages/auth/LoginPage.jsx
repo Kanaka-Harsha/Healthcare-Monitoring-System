@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../services/api';
+import api, { extractErrorMessage } from '../../services/api';
 import { Activity, Shield, User, Stethoscope, Smartphone, Lock, Phone, KeyRound, AlertCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 const LoginPage = () => {
@@ -65,7 +65,7 @@ const LoginPage = () => {
         }
       }
     } catch (err) {
-      setPatientError(err.response?.data?.detail || 'Failed to request OTP. Make sure you are registered.');
+      setPatientError(extractErrorMessage(err, 'Failed to request OTP. Make sure your phone number is registered.'));
     } finally {
       setOtpLoading(false);
     }
@@ -117,7 +117,7 @@ const LoginPage = () => {
             HealthPulse Access
           </h2>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Secure Healthcare Telemetry & Monitoring System
+            Secure Healthcare & Medical Monitoring System
           </p>
         </div>
 

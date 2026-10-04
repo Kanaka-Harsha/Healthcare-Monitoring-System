@@ -72,8 +72,8 @@ const BluetoothModal = ({ isOpen, onClose, onVitalsReceived }) => {
               <Bluetooth className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">ESP32 Hardware Connection</h3>
-              <p className="text-xs text-slate-400">Bluetooth BLE Telemetry Hub</p>
+              <h3 className="text-lg font-bold text-white">Medical Device Connection</h3>
+              <p className="text-xs text-slate-400">Wireless Health Device Hub</p>
             </div>
           </div>
           <button
@@ -101,7 +101,7 @@ const BluetoothModal = ({ isOpen, onClose, onVitalsReceived }) => {
             <div>
               {status === 'connected' ? (
                 <span className="flex items-center gap-1.5 px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Paired & Streaming
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Connected & Streaming
                 </span>
               ) : (
                 <span className="px-3 py-1 text-xs font-semibold rounded-full bg-slate-800 text-slate-400 border border-slate-700">
@@ -123,15 +123,15 @@ const BluetoothModal = ({ isOpen, onClose, onVitalsReceived }) => {
         {/* Action Options */}
         <div className="mt-6 space-y-3">
           
-          {/* Option 1: Real ESP32 BLE Connection */}
+          {/* Option 1: Real Bluetooth Device Connection */}
           <div className="p-4 rounded-xl glass-card hover:border-teal-500/40 transition">
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Bluetooth className="w-4 h-4 text-teal-400" /> Real ESP32 Hardware (Web Bluetooth)
+                  <Bluetooth className="w-4 h-4 text-teal-400" /> Bluetooth Medical Device
                 </h4>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Pairs with ESP32 via Chrome Web Bluetooth GATT service
+                  Pairs with nearby wireless health monitor or sensor
                 </p>
               </div>
               <button
@@ -146,21 +146,21 @@ const BluetoothModal = ({ isOpen, onClose, onVitalsReceived }) => {
                 ) : status === 'connected' && !isSimulating ? (
                   'Connected'
                 ) : (
-                  'Scan & Pair'
+                  'Scan & Connect'
                 )}
               </button>
             </div>
           </div>
 
-          {/* Option 2: Virtual ESP32 Hardware Simulator */}
+          {/* Option 2: Virtual Device Simulator */}
           <div className="p-4 rounded-xl glass-card hover:border-cyan-500/40 transition">
             <div className="flex items-center justify-between">
               <div>
                 <h4 className="text-sm font-semibold text-white flex items-center gap-2">
-                  <Cpu className="w-4 h-4 text-cyan-400" /> ESP32 Hardware Simulator
+                  <Cpu className="w-4 h-4 text-cyan-400" /> Virtual Medical Device (Demo Mode)
                 </h4>
                 <p className="text-xs text-slate-400 mt-0.5">
-                  Generates realistic live vital telemetry (BP, HR, SpO2) without hardware
+                  Streams live sample patient readings (BP, Heart Rate, Oxygen)
                 </p>
               </div>
               <button
@@ -173,11 +173,11 @@ const BluetoothModal = ({ isOpen, onClose, onVitalsReceived }) => {
               >
                 {isSimulating ? (
                   <>
-                    <Square className="w-3.5 h-3.5" /> Stop Sim
+                    <Square className="w-3.5 h-3.5" /> Stop Device
                   </>
                 ) : (
                   <>
-                    <Play className="w-3.5 h-3.5" /> Start Sim
+                    <Play className="w-3.5 h-3.5" /> Start Device
                   </>
                 )}
               </button>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../services/api';
+import api, { extractErrorMessage } from '../../services/api';
 import { 
   Shield, 
   Users, 
@@ -150,7 +150,7 @@ const AdminDashboard = () => {
       setNewPassword('');
       fetchUsers();
     } catch (err) {
-      setUserActionMsg('Failed to create user: ' + (err.response?.data?.detail || err.message));
+      setUserActionMsg('Error: ' + extractErrorMessage(err, 'Failed to create user. Please verify entered data.'));
     }
   };
 
@@ -159,7 +159,7 @@ const AdminDashboard = () => {
       await api.put(`/admin/users/${userId}/status?is_active=${!currentStatus}`);
       fetchUsers();
     } catch (err) {
-      console.error(err);
+      setUserActionMsg('Error toggling status: ' + extractErrorMessage(err, 'Could not update user status.'));
     }
   };
 
@@ -177,7 +177,7 @@ const AdminDashboard = () => {
       setNewDeviceMAC('');
       fetchDevices();
     } catch (err) {
-      console.error(err);
+      alert(extractErrorMessage(err, 'Failed to register device. MAC address may already exist.'));
     }
   };
 
@@ -196,11 +196,11 @@ const AdminDashboard = () => {
           <div className="flex items-center gap-2">
             <h1 className="text-2xl font-black text-white tracking-tight">System Administration</h1>
             <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold">
-              Root Console
+              Admin Portal
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Manage 4-role staff accounts, inspect medical questionnaires, monitor healthcamp scans, and review HIPAA logs.
+            Manage staff accounts, view patient medical questionnaires, monitor healthcamp scans, and review access logs.
           </p>
         </div>
 
@@ -244,7 +244,7 @@ const AdminDashboard = () => {
               activeTab === 'devices' ? 'bg-purple-500 text-slate-950 shadow-md' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Cpu className="w-3.5 h-3.5" /> ESP32 Devices
+            <Cpu className="w-3.5 h-3.5" /> Medical Devices
           </button>
           <button
             onClick={() => setActiveTab('audits')}
@@ -506,8 +506,8 @@ const AdminDashboard = () => {
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="text-base font-bold text-white">Healthcamp Vitals Scans & BLE Sync Tracker</h3>
-              <p className="text-xs text-slate-400">Audit all vital recordings uploaded from field health camps and doctor assistants.</p>
+              <h3 className="text-base font-bold text-white">Healthcamp Vitals Scans Log</h3>
+              <p className="text-xs text-slate-400">Review all vital readings recorded during health camps and clinical screenings.</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="relative w-full sm:w-72">
@@ -539,7 +539,7 @@ const AdminDashboard = () => {
                   <th className="p-4">Heart Rate</th>
                   <th className="p-4">SpO2 Oxygen</th>
                   <th className="p-4">Temperature</th>
-                  <th className="p-4">Device Source (BLE / ESP)</th>
+                  <th className="p-4">Medical Device Source</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
@@ -576,7 +576,7 @@ const AdminDashboard = () => {
                       </td>
                       <td className="p-4 font-mono text-[11px]">
                         <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-teal-300">
-                          {v.device_id || 'ESP32-NODE'}
+                          {v.device_id || 'Medical Device'}
                         </span>
                       </td>
                     </tr>
@@ -588,26 +588,26 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* TAB 5: ESP32 Device Fleet */}
+      {/* TAB 5: Medical Device Registry */}
       {activeTab === 'devices' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-white">ESP32 Hardware Fleet</h3>
-              <p className="text-xs text-slate-400">Authorized medical IoT machines streaming telemetry.</p>
+              <h3 className="text-base font-bold text-white">Medical Devices Registry</h3>
+              <p className="text-xs text-slate-400">Authorized health monitors and diagnostic devices.</p>
             </div>
             <button
               onClick={() => setShowCreateDeviceModal(true)}
               className="px-4 py-2 text-xs font-bold rounded-xl bg-purple-500 hover:bg-purple-400 text-slate-950 transition flex items-center gap-1.5 shadow-lg shadow-purple-500/20"
             >
-              <Plus className="w-4 h-4" /> Register ESP32 Device
+              <Plus className="w-4 h-4" /> Register Medical Device
             </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {devices.length === 0 ? (
               <div className="md:col-span-3 p-12 text-center rounded-3xl glass-panel border border-slate-800 text-slate-400 text-xs">
-                No ESP32 hardware registered yet. Click 'Register ESP32 Device' to authorize a new node.
+                No medical devices registered yet. Click 'Register Medical Device' to pair a new device.
               </div>
             ) : (
               devices.map((d) => (
@@ -634,13 +634,13 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* TAB 6: Security Audit Logs */}
+      {/* TAB 6: Security & System Access Logs */}
       {activeTab === 'audits' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-base font-bold text-white">Full HIPAA & Security Audit Log</h3>
-              <p className="text-xs text-slate-400">Immutable record of all patient data accesses and logins.</p>
+              <h3 className="text-base font-bold text-white">Security & System Access Logs</h3>
+              <p className="text-xs text-slate-400">Chronological record of all patient data accesses and staff actions.</p>
             </div>
             <button
               onClick={fetchAuditLogs}
@@ -931,7 +931,7 @@ const AdminDashboard = () => {
       {showCreateDeviceModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
           <div className="w-full max-w-md glass-panel p-6 rounded-3xl border border-slate-800 shadow-2xl space-y-4">
-            <h3 className="text-lg font-bold text-white">Register ESP32 Hardware Node</h3>
+            <h3 className="text-lg font-bold text-white">Register Medical Device</h3>
             <form onSubmit={handleCreateDevice} className="space-y-3">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1">Device Name *</label>
@@ -940,19 +940,19 @@ const AdminDashboard = () => {
                   value={newDeviceName}
                   onChange={(e) => setNewDeviceName(e.target.value)}
                   required
-                  placeholder="e.g. Field Kit Alpha (ESP32-WROOM-32)"
+                  placeholder="e.g. Wireless Health Monitor Kit Alpha"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white text-sm"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">BLE MAC / UUID *</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Device Serial Number / ID *</label>
                 <input
                   type="text"
                   value={newDeviceMAC}
                   onChange={(e) => setNewDeviceMAC(e.target.value)}
                   required
-                  placeholder="e.g. 24:6F:28:AB:CD:EF"
+                  placeholder="e.g. DEV-HEALTH-001"
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-white font-mono text-sm uppercase"
                 />
               </div>
@@ -969,7 +969,7 @@ const AdminDashboard = () => {
                   type="submit"
                   className="flex-1 py-2.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-slate-950 text-xs font-bold transition shadow-lg shadow-purple-500/20"
                 >
-                  Authorize Node
+                  Register Device
                 </button>
               </div>
             </form>

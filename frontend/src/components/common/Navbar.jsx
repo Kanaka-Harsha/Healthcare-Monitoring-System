@@ -59,10 +59,10 @@ const Navbar = () => {
                 HealthPulse
               </span>
               <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-400 border border-teal-500/30">
-                IoT Telemetry
+                Medical Care
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 hidden sm:block">ESP32 Healthcare Monitoring System</p>
+            <p className="text-[11px] text-slate-400 hidden sm:block">Healthcare & Vitals Monitoring System</p>
           </div>
         </div>
 

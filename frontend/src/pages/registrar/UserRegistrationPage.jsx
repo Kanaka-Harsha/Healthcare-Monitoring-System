@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import api from '../../services/api';
+import api, { extractErrorMessage } from '../../services/api';
 import { 
   UserPlus, 
   User, 
@@ -183,7 +183,7 @@ const UserRegistrationPage = () => {
     } catch (err) {
       setNotification({
         type: 'error',
-        message: err.response?.data?.detail || 'Failed to upload user registration. Please verify connection and fields.'
+        message: extractErrorMessage(err, 'Failed to upload user registration. Please check fields and server connection.')
       });
     } finally {
       setSubmitting(false);

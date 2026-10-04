@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../services/api';
+import api, { extractErrorMessage } from '../../services/api';
 import { useSync } from '../../context/SyncContext';
 import bluetoothService from '../../services/bluetoothService';
 import BluetoothModal from '../../components/bluetooth/BluetoothModal';
@@ -144,13 +144,21 @@ const CollectorDashboard = () => {
         resetForm();
         fetchHistory();
       } catch (err) {
-        // Fallback to offline queue if server request failed
-        await enqueueRecord(payload);
-        setNotification({
-          type: 'warning',
-          message: 'Server unreachable. Saved to offline queue. Will sync automatically.'
-        });
-        resetForm();
+        if (!err.response || err.message === 'Network Error' || err.code === 'ECONNABORTED') {
+          // Real network offline failure -> enqueue for offline sync
+          await enqueueRecord(payload);
+          setNotification({
+            type: 'warning',
+            message: 'Network offline: Screening safely saved to offline queue and will auto-sync when online.'
+          });
+          resetForm();
+        } else {
+          // Specific server or validation error -> show exact message on UI
+          setNotification({
+            type: 'error',
+            message: extractErrorMessage(err, 'Failed to submit screening. Please verify form inputs.')
+          });
+        }
       } finally {
         setSubmitting(false);
       }
@@ -191,13 +199,13 @@ const CollectorDashboard = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-3xl glass-panel border border-slate-800">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black text-white tracking-tight">Field Data Intake & Screening</h1>
+            <h1 className="text-2xl font-black text-white tracking-tight">Healthcamp & Assistant Screening</h1>
             <span className="px-2.5 py-0.5 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30 text-xs font-bold">
-              Collector Hub
+              Healthcamp Desk
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Capture patient demographics and stream real-time vitals from ESP32 medical machines.
+            Record patient vital signs and capture wireless readings from medical health devices.
           </p>
         </div>
 
@@ -212,7 +220,7 @@ const CollectorDashboard = () => {
             }`}
           >
             <Bluetooth className={`w-4 h-4 ${isBLEConnected ? 'animate-pulse' : ''}`} />
-            <span>{isBLEConnected ? 'ESP32 Streaming' : 'Pair ESP32 Bluetooth'}</span>
+            <span>{isBLEConnected ? 'Device Connected' : 'Connect Medical Device'}</span>
           </button>
 
           {pendingCount > 0 && (

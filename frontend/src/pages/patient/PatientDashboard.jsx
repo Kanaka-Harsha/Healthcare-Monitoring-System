@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../../services/api';
+import api, { extractErrorMessage } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { 
   Heart, 
@@ -42,7 +42,7 @@ const PatientDashboard = () => {
       const res = await api.get('/patient/my-records');
       setMedicalFile(res.data);
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to fetch your health records.');
+      setError(extractErrorMessage(err, 'Failed to fetch your health records.'));
     } finally {
       setLoading(false);
     }

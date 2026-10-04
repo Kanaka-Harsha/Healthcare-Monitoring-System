@@ -93,13 +93,13 @@ class BluetoothService {
 
       this.notify({
         status: 'connected',
-        deviceName: this.device.name || 'ESP32 Healthcare Node',
+        deviceName: this.device.name || 'Wireless Health Monitor',
         deviceId: this.device.id
       });
 
       return {
         success: true,
-        name: this.device.name || 'ESP32 Healthcare Node',
+        name: this.device.name || 'Wireless Health Monitor',
         id: this.device.id
       };
     } catch (err) {
@@ -109,7 +109,7 @@ class BluetoothService {
   }
 
   /**
-   * Parses JSON string from ESP32: {"systolic_bp":120, "diastolic_bp":80, "heart_rate":72, "spo2":98.5, "temp":36.6}
+   * Parses JSON string from medical sensor: {"systolic_bp":120, "diastolic_bp":80, "heart_rate":72, "spo2":98.5, "temp":36.6}
    */
   parseESP32Payload(rawText) {
     try {
@@ -123,16 +123,16 @@ class BluetoothService {
           spo2: data.spo2 || data.ox || null,
           temperature: data.temperature || data.temp || null,
           blood_glucose: data.blood_glucose || data.glucose || null,
-          device_id: this.device ? this.device.name || this.device.id : 'ESP32-BLE-NODE'
+          device_id: this.device ? this.device.name || this.device.id : 'Wireless Health Monitor'
         }
       });
     } catch (e) {
-      console.warn('Could not parse BLE string as JSON:', rawText);
+      console.warn('Could not parse device string as JSON:', rawText);
     }
   }
 
   /**
-   * Start ESP32 Hardware Simulator for testing without physical board
+   * Start Virtual Medical Device Simulator for demo testing
    */
   startSimulator() {
     this.stopSimulator();
@@ -141,8 +141,8 @@ class BluetoothService {
 
     this.notify({
       status: 'connected',
-      deviceName: 'ESP32-HEALTH-SIMULATOR (Virtual BLE)',
-      deviceId: 'SIM-ESP32-V1'
+      deviceName: 'Virtual Medical Device (Demo)',
+      deviceId: 'VIRTUAL-DEV-01'
     });
 
     let baseSys = 118;
@@ -166,7 +166,7 @@ class BluetoothService {
         spo2: parseFloat(Math.max(92.0, Math.min(99.8, baseSpO2 + spo2Fluctuation)).toFixed(1)),
         temperature: parseFloat(baseTemp.toFixed(1)),
         blood_glucose: 104.0,
-        device_id: 'ESP32-HEALTH-SIMULATOR'
+        device_id: 'Virtual Medical Device'
       };
 
       this.notify({

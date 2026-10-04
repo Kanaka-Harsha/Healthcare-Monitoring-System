@@ -8,15 +8,15 @@ const LiveVitalsWidget = ({ vitals, isConnected, onApplyToForm, onOpenModal }) =
         <div className="w-12 h-12 rounded-2xl bg-teal-500/10 text-teal-400 border border-teal-500/20 flex items-center justify-center mb-3">
           <Bluetooth className="w-6 h-6" />
         </div>
-        <h4 className="text-sm font-bold text-white">No ESP32 Stream Active</h4>
+        <h4 className="text-sm font-bold text-white">No Medical Device Connected</h4>
         <p className="text-xs text-slate-400 max-w-sm mt-1">
-          Connect your ESP32 Bluetooth peripheral or start the hardware simulator to stream live medical telemetry.
+          Connect your wireless medical device or start virtual demo device to stream patient vitals.
         </p>
         <button
           onClick={onOpenModal}
           className="mt-4 px-4 py-2 text-xs font-bold rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 transition flex items-center gap-2 shadow-lg shadow-teal-500/20"
         >
-          <Bluetooth className="w-3.5 h-3.5" /> Connect ESP32
+          <Bluetooth className="w-3.5 h-3.5" /> Connect Device
         </button>
       </div>
     );
@@ -43,11 +43,11 @@ const LiveVitalsWidget = ({ vitals, isConnected, onApplyToForm, onOpenModal }) =
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-teal-500"></span>
           </span>
-          <h4 className="text-sm font-bold text-white tracking-wide uppercase">Live ESP32 Vitals Stream</h4>
+          <h4 className="text-sm font-bold text-white tracking-wide uppercase">Live Patient Vitals Stream</h4>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-[11px] font-semibold text-slate-400 px-2 py-0.5 rounded bg-slate-900 border border-slate-800">
-            {vitals.device_id || 'ESP32'}
+            {vitals.device_id || 'Medical Device'}
           </span>
           <button
             onClick={onOpenModal}

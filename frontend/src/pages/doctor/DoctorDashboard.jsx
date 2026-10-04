@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import api from '../../services/api';
+import api, { extractErrorMessage } from '../../services/api';
 import { 
   Stethoscope, 
   Search, 
@@ -80,7 +80,7 @@ const DoctorDashboard = () => {
         }
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.detail || 'Patient not found or failed to dispatch OTP.');
+      setErrorMsg(extractErrorMessage(err, 'Patient not found or failed to dispatch OTP.'));
     } finally {
       setLoading(false);
     }
@@ -107,7 +107,7 @@ const DoctorDashboard = () => {
       setUnlockedFile(res.data);
       setSuccessMsg('Consent verified! Patient medical file unlocked.');
     } catch (err) {
-      setErrorMsg(err.response?.data?.detail || 'Invalid or expired OTP.');
+      setErrorMsg(extractErrorMessage(err, 'Invalid or expired OTP. Please verify with patient.'));
     } finally {
       setIsVerifying(false);
     }
@@ -157,7 +157,7 @@ const DoctorDashboard = () => {
       setMedicines([{ name: '', dosage: '', frequency: '1-0-1', days: '5' }]);
       setActiveTab('notes');
     } catch (err) {
-      setErrorMsg('Failed to save clinical note: ' + (err.response?.data?.detail || err.message));
+      setErrorMsg(extractErrorMessage(err, 'Failed to save clinical note.'));
     } finally {
       setLoading(false);
     }
@@ -194,7 +194,7 @@ const DoctorDashboard = () => {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Secure, patient-consented access to electronic vitals history, telemetry trends, and prescriptions.
+            Secure, patient-consented access to medical history, vitals trends, and prescriptions.
           </p>
         </div>
 
@@ -441,7 +441,7 @@ const DoctorDashboard = () => {
                       <TrendingUp className="w-5 h-5 text-teal-400" />
                       <h3 className="text-base font-bold text-white">Vitals Trend Analysis</h3>
                     </div>
-                    <span className="text-xs text-slate-400">Chronological Telemetry</span>
+                    <span className="text-xs text-slate-400">Recorded Vitals Timeline</span>
                   </div>
 
                   <div className="h-72 w-full pt-4">
