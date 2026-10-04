@@ -5,7 +5,7 @@ from sqlalchemy import or_
 
 from app.db.session import get_db
 from app.core.security import verify_password, create_access_token
-from app.core.otp_service import generate_numeric_otp, send_otp_to_phone, get_otp_expiry
+from app.core.otp_service import generate_numeric_otp, send_otp_to_phone, get_otp_expiry, verify_twilio_otp
 from app.models.user import User
 from app.models.patient import Patient
 from app.models.session import DoctorAccessSession
@@ -105,8 +105,7 @@ def patient_request_otp(
     return {
         "success": True,
         "message": f"OTP successfully sent to {clean_phone}.",
-        "phone": clean_phone,
-        "dev_otp": otp_code  # For convenience during development/demo
+        "phone": clean_phone
     }
 
 @router.post("/patient/verify-otp", response_model=Token)
@@ -130,15 +129,22 @@ def patient_verify_otp(
         DoctorAccessSession.expires_at > datetime.now(timezone.utc)
     ).order_by(DoctorAccessSession.created_at.desc()).first()
 
-    if not session or session.otp_code != payload.otp.strip():
+    is_valid = False
+    if session and session.otp_code == payload.otp.strip():
+        is_valid = True
+    elif verify_twilio_otp(clean_phone, payload.otp.strip()):
+        is_valid = True
+
+    if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired OTP. Please request a new one."
         )
 
-    session.is_verified = True
-    session.verified_at = datetime.now(timezone.utc)
-    db.commit()
+    if session:
+        session.is_verified = True
+        session.verified_at = datetime.now(timezone.utc)
+        db.commit()
 
     # Also ensure a corresponding User record exists for patient JWT if queried
     user = db.query(User).filter(User.phone == clean_phone).first()

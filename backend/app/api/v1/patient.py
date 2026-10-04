@@ -20,7 +20,7 @@ patient_only = require_role(["patient", "admin"])
 @router.get("/my-records", response_model=PatientMedicalFileOut)
 def get_my_patient_records(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(patient_only)
 ):
     """
     Allows an authenticated patient to view their own complete medical records, vitals history, and doctor prescriptions.

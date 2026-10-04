@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from app.db.session import get_db
-from app.core.otp_service import generate_numeric_otp, send_otp_to_phone, get_otp_expiry
+from app.core.otp_service import generate_numeric_otp, send_otp_to_phone, get_otp_expiry, verify_twilio_otp
 from app.models.user import User
 from app.models.patient import Patient
 from app.models.vitals import VitalsRecord
@@ -82,8 +82,7 @@ def request_patient_consent_otp(
         "success": True,
         "message": f"Consent OTP has been sent to patient {patient.full_name} ({clean_phone}).",
         "patient_name_masked": f"{patient.full_name[:2]}***{patient.full_name[-1:]}" if len(patient.full_name) > 3 else patient.full_name,
-        "phone": clean_phone,
-        "dev_otp": otp_code  # Visible for test & rapid demo
+        "phone": clean_phone
     }
 
 @router.post("/patient/verify-consent-otp", response_model=PatientMedicalFileOut)
@@ -111,16 +110,23 @@ def verify_patient_consent_otp(
         DoctorAccessSession.expires_at > datetime.now(timezone.utc)
     ).order_by(DoctorAccessSession.created_at.desc()).first()
 
-    if not session or session.otp_code != payload.otp.strip():
+    is_valid = False
+    if session and session.otp_code == payload.otp.strip():
+        is_valid = True
+    elif verify_twilio_otp(clean_phone, payload.otp.strip()):
+        is_valid = True
+
+    if not is_valid:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired OTP. Please ask the patient for the correct code or request a new OTP."
         )
 
     # Mark session verified
-    session.is_verified = True
-    session.verified_at = datetime.now(timezone.utc)
-    db.commit()
+    if session:
+        session.is_verified = True
+        session.verified_at = datetime.now(timezone.utc)
+        db.commit()
 
     log_audit_event(
         db=db,
