@@ -17,6 +17,7 @@ class Patient(Base):
     gender = Column(String(20), nullable=True)
     address = Column(String(500), nullable=True)
     emergency_contact = Column(JSON, nullable=True)
+    medical_history = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 

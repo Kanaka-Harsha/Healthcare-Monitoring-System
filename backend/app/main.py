@@ -94,7 +94,7 @@ for extra in [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins if "*" in origins else origins,
-    allow_origin_regex=r"^(https:\/\/.*\.vercel\.app|https:\/\/.*\.ngrok-free\.dev|https:\/\/.*\.ngrok\.app)$" if "*" not in origins else None,
+    allow_origin_regex=r"^(https:\/\/.*\.vercel\.app|https:\/\/.*\.ngrok-free\.dev|https:\/\/.*\.ngrok\.app|https:\/\/[a-z0-9\-]+\.trycloudflare\.com)$" if "*" not in origins else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

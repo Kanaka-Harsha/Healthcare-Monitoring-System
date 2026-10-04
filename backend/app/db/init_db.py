@@ -48,7 +48,7 @@ def init_db():
         demo_collector = db.query(User).filter(User.email == "collector@healthcare.local").first()
         if not demo_collector:
             collector = User(
-                full_name="Alex Turner (Field Collector)",
+                full_name="Alex Turner (Healthcamp Assistant)",
                 email="collector@healthcare.local",
                 phone="9123456780",
                 role="collector",
@@ -58,6 +58,20 @@ def init_db():
             db.add(collector)
             db.commit()
             db_logger.info("[COLLECTOR] Demo Field Collector created: collector@healthcare.local")
+
+        demo_registrar = db.query(User).filter(User.email == "registrar@healthcare.local").first()
+        if not demo_registrar:
+            registrar = User(
+                full_name="Elena Vance (User Registration)",
+                email="registrar@healthcare.local",
+                phone="9000000001",
+                role="registrar",
+                password_hash=get_password_hash("Registrar@123"),
+                is_active=True
+            )
+            db.add(registrar)
+            db.commit()
+            db_logger.info("[REGISTRAR] Demo Registrar created: registrar@healthcare.local")
 
     except Exception as e:
         db.rollback()

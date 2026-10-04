@@ -11,6 +11,7 @@ class PatientCreate(BaseModel):
     gender: Optional[str] = Field(None, description="Male, Female, Other")
     address: Optional[str] = None
     emergency_contact: Optional[Dict[str, Any]] = None
+    medical_history: Optional[Dict[str, Any]] = None
 
     @field_validator("phone")
     def validate_phone(cls, v: str) -> str:
@@ -32,6 +33,7 @@ class PatientUpdate(BaseModel):
     gender: Optional[str] = None
     address: Optional[str] = None
     emergency_contact: Optional[Dict[str, Any]] = None
+    medical_history: Optional[Dict[str, Any]] = None
 
 class PatientOut(BaseModel):
     id: UUID
@@ -42,6 +44,7 @@ class PatientOut(BaseModel):
     gender: Optional[str] = None
     address: Optional[str] = None
     emergency_contact: Optional[Dict[str, Any]] = None
+    medical_history: Optional[Dict[str, Any]] = None
     created_at: datetime
 
     class Config:

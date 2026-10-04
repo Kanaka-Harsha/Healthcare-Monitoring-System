@@ -16,8 +16,8 @@ from app.api.deps import get_current_user, require_role, log_audit_event
 
 router = APIRouter()
 
-# Restrict to collectors and admins
-collector_or_admin = require_role(["collector", "admin"])
+# Restrict to registrars, collectors, doctors, and admins
+collector_or_admin = require_role(["registrar", "collector", "doctor", "admin"])
 
 @router.post("/patient", response_model=PatientOut)
 def register_or_get_patient(
@@ -29,6 +29,7 @@ def register_or_get_patient(
     """
     Register a new patient or update existing patient by Phone or Aadhaar hash.
     Securely hashes 12-digit Aadhaar and stores masked version.
+    Now includes comprehensive medical history questionnaire saving.
     """
     clean_phone = "".join(filter(str.isdigit, payload.phone))[-10:]
     aadhaar_h = hash_aadhaar(payload.aadhaar_number)
@@ -56,6 +57,8 @@ def register_or_get_patient(
             patient.address = payload.address
         if payload.emergency_contact:
             patient.emergency_contact = payload.emergency_contact
+        if payload.medical_history:
+            patient.medical_history = payload.medical_history
         
         db.commit()
         db.refresh(patient)
@@ -66,7 +69,7 @@ def register_or_get_patient(
             user_id=current_user.id,
             resource_type="patient",
             resource_id=str(patient.id),
-            details=f"Patient {patient.full_name} updated by collector {current_user.full_name}",
+            details=f"Patient {patient.full_name} updated by {current_user.full_name} ({current_user.role})",
             ip_address=request.client.host if request.client else None
         )
         return patient
@@ -80,7 +83,8 @@ def register_or_get_patient(
         age=payload.age,
         gender=payload.gender,
         address=payload.address,
-        emergency_contact=payload.emergency_contact
+        emergency_contact=payload.emergency_contact,
+        medical_history=payload.medical_history
     )
     db.add(new_patient)
     db.commit()
@@ -92,7 +96,7 @@ def register_or_get_patient(
         user_id=current_user.id,
         resource_type="patient",
         resource_id=str(new_patient.id),
-        details=f"Patient {new_patient.full_name} registered by collector {current_user.full_name}",
+        details=f"Patient {new_patient.full_name} registered by {current_user.full_name} ({current_user.role})",
         ip_address=request.client.host if request.client else None
     )
 
