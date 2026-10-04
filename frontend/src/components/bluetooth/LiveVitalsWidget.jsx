@@ -2,20 +2,7 @@ import React from 'react';
 
 const LiveVitalsWidget = ({ vitals, isConnected, onApplyToForm, onOpenModal }) => {
   if (!isConnected || !vitals) {
-    return (
-      <div className="p-5 rounded bg-white border border-slate-200 text-center flex flex-col items-center justify-center">
-        <h4 className="text-sm font-bold text-slate-800">No Medical Health Device Connected</h4>
-        <p className="text-xs text-slate-600 max-w-sm mt-1">
-          Connect your wireless medical screening device to automatically capture patient vital signs.
-        </p>
-        <button
-          onClick={onOpenModal}
-          className="mt-3 px-4 py-1.5 text-xs font-semibold rounded bg-teal-800 hover:bg-teal-900 text-white transition shadow-sm"
-        >
-          Connect Medical Device
-        </button>
-      </div>
-    );
+    return null;
   }
 
   // Calculate BP Category
