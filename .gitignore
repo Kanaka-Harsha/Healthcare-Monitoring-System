@@ -1,3 +1,8 @@
+# Cloudflare Tunnel binary & runtime
+cloudflared.exe
+tunnel_state.json
+tunnel.log
+
 # Environment variables & secrets
 .env
 .env.local
