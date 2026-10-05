@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api, { extractErrorMessage } from '../../services/api';
 import InstallAppButton from '../../components/common/InstallButton';
@@ -341,6 +341,16 @@ const LoginPage = () => {
             )}
           </div>
         )}
+
+        {/* Signup / New User Registration Prompt */}
+        <div className="mt-4 p-3 bg-white rounded-lg border border-slate-200 text-center shadow-sm">
+          <p className="text-xs text-slate-600">
+            Don't have an account?{' '}
+            <Link to="/signup" className="font-semibold text-teal-700 hover:text-teal-800 hover:underline">
+              Create an account (Staff & Patients)
+            </Link>
+          </p>
+        </div>
 
         {/* Direct Install PWA Banner */}
         <div className="mt-4 text-center">

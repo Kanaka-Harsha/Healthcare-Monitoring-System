@@ -307,10 +307,10 @@ const DoctorDashboard = () => {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex overflow-x-auto horizontal-scroll-touch items-center gap-1.5 pb-1 max-w-full">
               <button
                 onClick={() => setActiveTab('vitals')}
-                className={`px-3 py-1.5 rounded text-xs font-semibold transition ${
+                className={`px-3 py-1.5 rounded text-xs font-semibold whitespace-nowrap transition touch-target ${
                   activeTab === 'vitals' ? 'bg-teal-800 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
@@ -318,7 +318,7 @@ const DoctorDashboard = () => {
               </button>
               <button
                 onClick={() => setActiveTab('history')}
-                className={`px-3 py-1.5 rounded text-xs font-semibold transition ${
+                className={`px-3 py-1.5 rounded text-xs font-semibold whitespace-nowrap transition touch-target ${
                   activeTab === 'history' ? 'bg-teal-800 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
@@ -326,7 +326,7 @@ const DoctorDashboard = () => {
               </button>
               <button
                 onClick={() => setActiveTab('notes')}
-                className={`px-3 py-1.5 rounded text-xs font-semibold transition ${
+                className={`px-3 py-1.5 rounded text-xs font-semibold whitespace-nowrap transition touch-target ${
                   activeTab === 'notes' ? 'bg-teal-800 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                 }`}
               >
@@ -334,7 +334,7 @@ const DoctorDashboard = () => {
               </button>
               <button
                 onClick={() => setActiveTab('addNote')}
-                className={`px-3 py-1.5 rounded text-xs font-semibold transition ${
+                className={`px-3 py-1.5 rounded text-xs font-semibold whitespace-nowrap transition touch-target ${
                   activeTab === 'addNote' ? 'bg-teal-800 text-white' : 'bg-teal-50 text-teal-900 border border-teal-200 hover:bg-teal-100'
                 }`}
               >

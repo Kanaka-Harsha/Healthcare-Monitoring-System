@@ -15,6 +15,20 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem('token') || null);
   const [loading, setLoading] = useState(false);
 
+  const setAuthSession = (data) => {
+    const userData = {
+      id: data.user_id,
+      full_name: data.full_name,
+      email: data.email || null,
+      phone: data.phone,
+      role: data.role,
+    };
+    setToken(data.access_token);
+    setUser(userData);
+    localStorage.setItem('token', data.access_token);
+    localStorage.setItem('user', JSON.stringify(userData));
+  };
+
   const loginStaff = async (username_or_phone, password) => {
     setLoading(true);
     try {
@@ -23,25 +37,40 @@ export const AuthProvider = ({ children }) => {
         password,
       });
       const data = response.data;
-      setToken(data.access_token);
-      setUser({
-        id: data.user_id,
-        full_name: data.full_name,
-        email: data.email,
-        phone: data.phone,
-        role: data.role,
-      });
-      localStorage.setItem('token', data.access_token);
-      localStorage.setItem('user', JSON.stringify({
-        id: data.user_id,
-        full_name: data.full_name,
-        email: data.email,
-        phone: data.phone,
-        role: data.role,
-      }));
+      setAuthSession(data);
       return { success: true, role: data.role };
     } catch (error) {
       const msg = extractErrorMessage(error, 'Login failed. Please check your username/phone and password.');
+      return { success: false, error: msg };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signupStaff = async (staffData) => {
+    setLoading(true);
+    try {
+      const response = await api.post('/auth/signup/staff', staffData);
+      const data = response.data;
+      setAuthSession(data);
+      return { success: true, role: data.role };
+    } catch (error) {
+      const msg = extractErrorMessage(error, 'Staff registration failed. Please check the entered information.');
+      return { success: false, error: msg };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const signupPatient = async (patientData) => {
+    setLoading(true);
+    try {
+      const response = await api.post('/auth/signup/patient', patientData);
+      const data = response.data;
+      setAuthSession(data);
+      return { success: true, role: data.role };
+    } catch (error) {
+      const msg = extractErrorMessage(error, 'Patient registration failed. Please check details.');
       return { success: false, error: msg };
     } finally {
       setLoading(false);
@@ -56,20 +85,7 @@ export const AuthProvider = ({ children }) => {
         otp,
       });
       const data = response.data;
-      setToken(data.access_token);
-      setUser({
-        id: data.user_id,
-        full_name: data.full_name,
-        phone: data.phone,
-        role: 'patient',
-      });
-      localStorage.setItem('token', data.access_token);
-      localStorage.setItem('user', JSON.stringify({
-        id: data.user_id,
-        full_name: data.full_name,
-        phone: data.phone,
-        role: 'patient',
-      }));
+      setAuthSession(data);
       return { success: true, role: 'patient' };
     } catch (error) {
       const msg = extractErrorMessage(error, 'Invalid or expired OTP. Please try again.');
@@ -88,7 +104,16 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, loginStaff, loginPatientWithOTP, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token, 
+      loading, 
+      loginStaff, 
+      signupStaff,
+      signupPatient,
+      loginPatientWithOTP, 
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   );

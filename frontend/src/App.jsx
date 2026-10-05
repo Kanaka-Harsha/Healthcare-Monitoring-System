@@ -5,6 +5,7 @@ import { SyncProvider } from './context/SyncContext';
 import Navbar from './components/common/Navbar';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import LoginPage from './pages/auth/LoginPage';
+import SignupPage from './pages/auth/SignupPage';
 import UserRegistrationPage from './pages/registrar/UserRegistrationPage';
 import CollectorDashboard from './pages/collector/CollectorDashboard';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
@@ -32,6 +33,7 @@ function App() {
             <main className="flex-1">
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<SignupPage />} />
                 
                 {/* 1. User Registration (New User) Role Route */}
                 <Route
