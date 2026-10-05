@@ -3,8 +3,19 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+  }
+
   body {
     @apply bg-slate-50 text-slate-800 font-sans antialiased selection:bg-teal-100 selection:text-teal-900;
+    padding-top: var(--sat);
+    padding-bottom: var(--sab);
+    padding-left: var(--sal);
+    padding-right: var(--sar);
   }
 
   input, select, textarea {

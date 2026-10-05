@@ -28,34 +28,37 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
         {/* Brand Name */}
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded bg-teal-700 text-white font-bold flex items-center justify-center text-sm">
-            SG
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-lg text-slate-900 tracking-tight">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <img 
+            src="/icon-192.png" 
+            alt="SwastGrama Logo" 
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded object-contain shadow-sm border border-teal-100 flex-shrink-0"
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          />
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="font-bold text-base sm:text-lg text-slate-900 tracking-tight whitespace-nowrap">
                 SwastGrama
               </span>
-              <span className="text-[11px] font-medium px-2 py-0.5 rounded bg-teal-50 text-teal-800 border border-teal-200">
+              <span className="text-[10px] sm:text-[11px] font-medium px-1.5 py-0.5 rounded bg-teal-50 text-teal-800 border border-teal-200 hidden md:inline-block">
                 Village Health
               </span>
             </div>
-            <p className="text-xs text-slate-500 hidden sm:block">Community Healthcare & Patient Records</p>
+            <p className="text-[11px] text-slate-500 hidden lg:block truncate">Community Healthcare & Patient Records</p>
           </div>
         </div>
 
         {/* Status & User Actions */}
         {user && (
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
             
             {/* Status Indicator */}
-            <div className={`px-2.5 py-1 rounded text-xs font-medium border ${
+            <div className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded text-[11px] sm:text-xs font-medium border whitespace-nowrap ${
               isOnline 
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
                 : 'bg-amber-50 text-amber-800 border-amber-200'
             }`}>
-              {isOnline ? 'Connected' : 'Offline (Saved on Device)'}
+              {isOnline ? 'Connected' : 'Offline Mode'}
             </div>
 
             {/* Offline Records Button */}

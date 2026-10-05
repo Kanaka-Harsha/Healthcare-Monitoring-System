@@ -27,7 +27,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <SyncProvider>
-          <div className="min-h-screen bg-slate-950 flex flex-col selection:bg-teal-500 selection:text-slate-950">
+          <div className="min-h-screen bg-slate-50 flex flex-col selection:bg-teal-100 selection:text-teal-900">
             <Navbar />
             <main className="flex-1">
               <Routes>
