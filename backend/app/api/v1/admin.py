@@ -6,14 +6,15 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, or_
 
 from app.db.session import get_db
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, hash_aadhaar, mask_aadhaar
 from app.models.user import User
 from app.models.patient import Patient
 from app.models.vitals import VitalsRecord
 from app.models.device import Device
 from app.models.audit import AuditLog
+from app.models.session import DoctorAccessSession
 from app.schemas.user import UserCreate, UserUpdate, UserOut
-from app.schemas.patient import PatientOut
+from app.schemas.patient import PatientCreate, PatientOut
 from app.schemas.admin import DeviceCreate, DeviceOut, AuditLogOut, AnalyticsOverviewOut
 from app.api.deps import require_role, log_audit_event
 
@@ -153,6 +154,93 @@ def create_staff_user(
     )
 
     return new_user
+
+@router.put("/users/{user_id}", response_model=UserOut)
+def update_user(
+    user_id: UUID,
+    payload: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_only)
+):
+    """
+    Admin updates a staff member or user, changes role, or allocates a new password.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    if payload.full_name is not None:
+        user.full_name = payload.full_name.strip()
+    if payload.email is not None:
+        clean_email = payload.email.strip().lower() if payload.email.strip() else None
+        if clean_email:
+            existing_email = db.query(User).filter(User.email == clean_email, User.id != user_id).first()
+            if existing_email:
+                raise HTTPException(status_code=400, detail="Another user with this email address already exists.")
+        user.email = clean_email
+    if payload.phone is not None:
+        clean_phone = "".join(filter(str.isdigit, payload.phone))[-10:]
+        if clean_phone:
+            existing_phone = db.query(User).filter(User.phone == clean_phone, User.id != user_id).first()
+            if existing_phone:
+                raise HTTPException(status_code=400, detail="Another user with this phone number already exists.")
+            user.phone = clean_phone
+    if payload.role is not None:
+        user.role = payload.role
+    if payload.is_active is not None:
+        user.is_active = payload.is_active
+    if payload.password and payload.password.strip():
+        user.password_hash = get_password_hash(payload.password.strip())
+
+    db.commit()
+    db.refresh(user)
+
+    log_audit_event(
+        db=db,
+        action="USER_UPDATED_BY_ADMIN",
+        user_id=current_user.id,
+        resource_type="user",
+        resource_id=str(user.id),
+        details=f"Admin {current_user.full_name} updated account for {user.full_name} (Role: {user.role})"
+    )
+
+    return user
+
+@router.delete("/users/{user_id}")
+def delete_user(
+    user_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_only)
+):
+    """
+    Admin permanently deletes a user/staff account.
+    """
+    if str(user_id) == str(current_user.id):
+        raise HTTPException(status_code=400, detail="You cannot delete your own admin account.")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    user_name = user.full_name
+    user_role = user.role
+
+    # Clean up any sessions
+    db.query(DoctorAccessSession).filter(DoctorAccessSession.doctor_id == user_id).delete()
+
+    db.delete(user)
+    db.commit()
+
+    log_audit_event(
+        db=db,
+        action="USER_DELETED",
+        user_id=current_user.id,
+        resource_type="user",
+        resource_id=str(user_id),
+        details=f"Admin {current_user.full_name} deleted {user_role} account: {user_name}"
+    )
+
+    return {"success": True, "message": f"User {user_name} ({user_role}) was successfully deleted."}
 
 @router.put("/users/{user_id}/status")
 def toggle_user_status(
@@ -297,3 +385,101 @@ def list_patients(
             )
         )
     return query.order_by(desc(Patient.created_at)).limit(limit).all()
+
+@router.post("/patients", response_model=PatientOut)
+def admin_create_patient(
+    payload: PatientCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_only)
+):
+    """
+    Admin creates a patient record directly with identification details and medical history.
+    """
+    clean_phone = "".join(filter(str.isdigit, payload.phone))[-10:]
+    aadhaar_h = hash_aadhaar(payload.aadhaar_number)
+    aadhaar_m = mask_aadhaar(payload.aadhaar_number)
+
+    patient = db.query(Patient).filter(
+        or_(
+            Patient.phone == clean_phone,
+            Patient.aadhaar_hash == aadhaar_h
+        )
+    ).first()
+
+    if patient:
+        patient.full_name = payload.full_name.strip()
+        patient.phone = clean_phone
+        patient.aadhaar_masked = aadhaar_m
+        patient.aadhaar_hash = aadhaar_h
+        if payload.age is not None:
+            patient.age = payload.age
+        if payload.gender:
+            patient.gender = payload.gender
+        if payload.address:
+            patient.address = payload.address
+        if payload.emergency_contact:
+            patient.emergency_contact = payload.emergency_contact
+        if payload.medical_history:
+            patient.medical_history = payload.medical_history
+        db.commit()
+        db.refresh(patient)
+    else:
+        patient = Patient(
+            full_name=payload.full_name.strip(),
+            phone=clean_phone,
+            aadhaar_masked=aadhaar_m,
+            aadhaar_hash=aadhaar_h,
+            age=payload.age,
+            gender=payload.gender,
+            address=payload.address,
+            emergency_contact=payload.emergency_contact,
+            medical_history=payload.medical_history
+        )
+        db.add(patient)
+        db.commit()
+        db.refresh(patient)
+
+    log_audit_event(
+        db=db,
+        action="PATIENT_CREATED_BY_ADMIN",
+        user_id=current_user.id,
+        resource_type="patient",
+        resource_id=str(patient.id),
+        details=f"Admin {current_user.full_name} created patient record for {patient.full_name}"
+    )
+
+    return patient
+
+@router.delete("/patients/{patient_id}")
+def admin_delete_patient(
+    patient_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_only)
+):
+    """
+    Admin permanently deletes a patient record, their access sessions, and associated screening vitals.
+    """
+    patient = db.query(Patient).filter(Patient.id == patient_id).first()
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found.")
+
+    patient_name = patient.full_name
+    patient_phone = patient.phone
+
+    # Clean up associated sessions and user record if any
+    db.query(DoctorAccessSession).filter(DoctorAccessSession.patient_id == patient_id).delete()
+    db.query(User).filter(User.phone == patient_phone, User.role == "patient").delete()
+
+    db.delete(patient)
+    db.commit()
+
+    log_audit_event(
+        db=db,
+        action="PATIENT_DELETED_BY_ADMIN",
+        user_id=current_user.id,
+        resource_type="patient",
+        resource_id=str(patient_id),
+        details=f"Admin {current_user.full_name} permanently deleted patient record: {patient_name} ({patient_phone})"
+    )
+
+    return {"success": True, "message": f"Patient {patient_name} and all clinical history were successfully removed."}

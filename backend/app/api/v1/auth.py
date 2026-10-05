@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
 from app.db.session import get_db
-from app.core.security import verify_password, create_access_token
+from app.core.security import verify_password, create_access_token, get_password_hash, hash_aadhaar, mask_aadhaar
 from app.core.otp_service import (
     generate_numeric_otp, 
     send_otp_to_phone, 
@@ -20,10 +20,161 @@ from app.models.user import User
 from app.models.patient import Patient
 from app.models.session import DoctorAccessSession
 from app.schemas.auth import Token, LoginRequest, PatientPhoneLoginRequest, RequestPatientOTP
-from app.schemas.user import UserOut
+from app.schemas.user import UserCreate, UserOut
+from app.schemas.patient import PatientCreate
 from app.api.deps import get_current_user, log_audit_event
 
 router = APIRouter()
+
+@router.post("/signup/staff", response_model=Token)
+def signup_staff(
+    payload: UserCreate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Self-signup for medical professionals and staff (Doctor, Registrar, Collector).
+    """
+    allowed_roles = ["doctor", "registrar", "collector"]
+    if payload.role not in allowed_roles:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid staff role. Allowed roles are: {', '.join(allowed_roles)}"
+        )
+    
+    clean_phone = "".join(filter(str.isdigit, payload.phone))[-10:]
+    if len(clean_phone) < 10:
+        raise HTTPException(status_code=400, detail="Please provide a valid 10-digit phone number.")
+    
+    if payload.email:
+        existing_email = db.query(User).filter(User.email == payload.email.strip().lower()).first()
+        if existing_email:
+            raise HTTPException(status_code=400, detail="An account with this email address already exists.")
+    
+    existing_phone = db.query(User).filter(User.phone == clean_phone).first()
+    if existing_phone:
+        raise HTTPException(status_code=400, detail="An account with this phone number already exists.")
+
+    new_user = User(
+        full_name=payload.full_name.strip(),
+        email=payload.email.strip().lower() if payload.email else None,
+        phone=clean_phone,
+        role=payload.role,
+        password_hash=get_password_hash(payload.password),
+        is_active=True
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    log_audit_event(
+        db=db,
+        action="STAFF_SIGNUP",
+        user_id=new_user.id,
+        resource_type="user",
+        details=f"Staff account self-registered: {new_user.full_name} ({new_user.role})",
+        ip_address=request.client.host if request.client else None
+    )
+
+    token = create_access_token(subject=str(new_user.id), role=new_user.role)
+
+    return Token(
+        access_token=token,
+        token_type="bearer",
+        user_id=new_user.id,
+        full_name=new_user.full_name,
+        email=new_user.email,
+        phone=new_user.phone,
+        role=new_user.role
+    )
+
+@router.post("/signup/patient", response_model=Token)
+def signup_patient(
+    payload: PatientCreate,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Self-signup for patients to create their health portal account.
+    """
+    clean_phone = "".join(filter(str.isdigit, payload.phone))[-10:]
+    aadhaar_h = hash_aadhaar(payload.aadhaar_number)
+    aadhaar_m = mask_aadhaar(payload.aadhaar_number)
+
+    patient = db.query(Patient).filter(
+        or_(
+            Patient.phone == clean_phone,
+            Patient.aadhaar_hash == aadhaar_h
+        )
+    ).first()
+
+    if patient:
+        # Patient already registered, update details
+        patient.full_name = payload.full_name.strip()
+        patient.phone = clean_phone
+        patient.aadhaar_masked = aadhaar_m
+        patient.aadhaar_hash = aadhaar_h
+        if payload.age is not None:
+            patient.age = payload.age
+        if payload.gender:
+            patient.gender = payload.gender
+        if payload.address:
+            patient.address = payload.address
+        if payload.emergency_contact:
+            patient.emergency_contact = payload.emergency_contact
+        if payload.medical_history:
+            patient.medical_history = payload.medical_history
+        db.commit()
+        db.refresh(patient)
+    else:
+        patient = Patient(
+            full_name=payload.full_name.strip(),
+            phone=clean_phone,
+            aadhaar_masked=aadhaar_m,
+            aadhaar_hash=aadhaar_h,
+            age=payload.age,
+            gender=payload.gender,
+            address=payload.address,
+            emergency_contact=payload.emergency_contact,
+            medical_history=payload.medical_history
+        )
+        db.add(patient)
+        db.commit()
+        db.refresh(patient)
+
+    # Ensure User record exists
+    user = db.query(User).filter(User.phone == clean_phone).first()
+    if not user:
+        user = User(
+            id=patient.id,
+            full_name=patient.full_name,
+            phone=patient.phone,
+            role="patient",
+            is_active=True
+        )
+        db.add(user)
+        db.commit()
+
+    token = create_access_token(subject=str(patient.id), role="patient")
+
+    log_audit_event(
+        db=db,
+        action="PATIENT_SELF_SIGNUP",
+        user_id=patient.id,
+        resource_type="patient",
+        details=f"Patient {patient.full_name} registered personal account",
+        ip_address=request.client.host if request.client else None
+    )
+
+    return Token(
+        access_token=token,
+        token_type="bearer",
+        user_id=patient.id,
+        full_name=patient.full_name,
+        email=None,
+        phone=patient.phone,
+        role="patient"
+    )
 
 @router.post("/login", response_model=Token)
 def login(
