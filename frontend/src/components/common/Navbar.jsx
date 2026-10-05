@@ -39,7 +39,7 @@ const Navbar = () => {
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 sm:gap-2">
               <span className="font-bold text-base sm:text-lg text-slate-900 tracking-tight whitespace-nowrap">
-                SwastGrama
+                SwasthGrama
               </span>
               <span className="text-[10px] sm:text-[11px] font-medium px-1.5 py-0.5 rounded bg-teal-50 text-teal-800 border border-teal-200 hidden md:inline-block">
                 Village Health
