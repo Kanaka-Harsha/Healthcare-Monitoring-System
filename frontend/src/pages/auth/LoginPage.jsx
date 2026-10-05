@@ -112,7 +112,7 @@ const LoginPage = () => {
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
           <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            SwastGrama
+            SwasthGrama
           </h1>
           <p className="text-sm text-slate-600 mt-1">
             Rural Healthcare Monitoring & Medical Records Portal
@@ -230,13 +230,6 @@ const LoginPage = () => {
                   className="px-2 py-1.5 rounded bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs text-slate-700 font-medium transition text-center"
                 >
                   3. Doctor
-                </button>
-                <button
-                  type="button"
-                  onClick={() => autofillStaff('admin')}
-                  className="px-2 py-1.5 rounded bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs text-slate-700 font-medium transition text-center"
-                >
-                  4. Administrator
                 </button>
               </div>
             </div>
