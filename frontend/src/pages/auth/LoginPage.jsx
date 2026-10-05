@@ -204,7 +204,7 @@ const LoginPage = () => {
               </button>
             </form>
 
-            {/* Quick Demo Credentials */}
+            {/* Quick Demo Credentials
             <div className="mt-6 pt-4 border-t border-slate-200">
               <p className="text-xs text-slate-500 font-medium text-center mb-2">
                 Quick Role Selector (Testing):
@@ -232,7 +232,7 @@ const LoginPage = () => {
                   3. Doctor
                 </button>
               </div>
-            </div>
+            </div> */}
 
           </div>
         )}

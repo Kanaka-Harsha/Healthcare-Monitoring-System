@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import api, { extractErrorMessage } from '../../services/api';
+import { useSync } from '../../context/SyncContext';
 
 const CHRONIC_CONDITIONS = [
   'Hypertension (High Blood Pressure)',
@@ -54,6 +55,8 @@ const ALLERGIES_OPTIONS = [
 ];
 
 const UserRegistrationPage = () => {
+  const { isOnline, enqueuePatientRecord, triggerSync, pendingCount, pendingPatients } = useSync();
+
   // Personal Details
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -152,20 +155,60 @@ const UserRegistrationPage = () => {
     };
 
     setSubmitting(true);
-    try {
-      const res = await api.post('/collector/patient', payload);
-      setCreatedPatient(res.data);
+
+    if (isOnline) {
+      try {
+        const res = await api.post('/collector/patient', payload);
+        setCreatedPatient(res.data);
+        setNotification({
+          type: 'success',
+          message: `Patient ${fullName} has been successfully registered on the central server. The medical questionnaire has been saved.`
+        });
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (err) {
+        if (!err.response || err.message === 'Network Error' || err.code === 'ECONNABORTED') {
+          // Network failure fallback -> store in IndexedDB
+          await enqueuePatientRecord(payload);
+          setCreatedPatient({
+            id: `OFFLINE-PAT-${cleanPhone.slice(-4)}`,
+            full_name: fullName.trim(),
+            phone: cleanPhone,
+            aadhaar_masked: `XXXX-XXXX-${cleanAadhaar.slice(-4)}`,
+            age: age ? parseInt(age) : null,
+            gender,
+            isOffline: true
+          });
+          setNotification({
+            type: 'warning',
+            message: `Connection lost: Patient ${fullName} has been safely saved in offline storage on this device. It will automatically upload when internet connects.`
+          });
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          setNotification({
+            type: 'error',
+            message: extractErrorMessage(err, 'Failed to register patient. Please check the information and try again.')
+          });
+        }
+      } finally {
+        setSubmitting(false);
+      }
+    } else {
+      // Offline mode
+      await enqueuePatientRecord(payload);
+      setCreatedPatient({
+        id: `OFFLINE-PAT-${cleanPhone.slice(-4)}`,
+        full_name: fullName.trim(),
+        phone: cleanPhone,
+        aadhaar_masked: `XXXX-XXXX-${cleanAadhaar.slice(-4)}`,
+        age: age ? parseInt(age) : null,
+        gender,
+        isOffline: true
+      });
       setNotification({
-        type: 'success',
-        message: `Patient ${fullName} has been successfully registered. The medical questionnaire has been saved.`
+        type: 'warning',
+        message: `Offline Mode Active: Patient ${fullName} and their complete medical history questionnaire are safely saved on this device. It will automatically sync when internet connects.`
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
-    } catch (err) {
-      setNotification({
-        type: 'error',
-        message: extractErrorMessage(err, 'Failed to register patient. Please check the information and try again.')
-      });
-    } finally {
       setSubmitting(false);
     }
   };
@@ -199,12 +242,36 @@ const UserRegistrationPage = () => {
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
       
+      {/* Offline Status Alert Banner */}
+      {!isOnline && (
+        <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center justify-between text-amber-900 text-xs">
+          <div className="flex items-center gap-2 font-medium">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+            <span>
+              <strong>Offline Registration Mode:</strong> No internet connection detected. All patient registrations and medical questionnaires will be saved locally on this phone and will automatically upload when network reconnects.
+            </span>
+          </div>
+          {pendingCount > 0 && (
+            <span className="font-semibold bg-amber-200/80 px-2 py-0.5 rounded text-amber-900 ml-2 whitespace-nowrap">
+              {pendingCount} Pending Sync
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 pb-4 border-b border-slate-200">
         <div>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-teal-100 text-teal-800">
-            SwastGrama - Patient Registration
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-teal-100 text-teal-800">
+              SwasthGrama - Patient Registration
+            </span>
+            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${
+              isOnline ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+            }`}>
+              {isOnline ? 'Online' : 'Offline Mode'}
+            </span>
+          </div>
           <h1 className="text-xl font-bold text-slate-900 mt-1">
             New Patient Registration & Health History
           </h1>
@@ -228,39 +295,51 @@ const UserRegistrationPage = () => {
         <div className={`mb-6 p-4 rounded text-sm font-medium border ${
           notification.type === 'success'
             ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+            : notification.type === 'warning'
+            ? 'bg-amber-50 border-amber-300 text-amber-900'
             : 'bg-rose-50 border-rose-300 text-rose-900'
         }`}>
           {notification.message}
         </div>
       )}
 
-      {/* Success Confirmation Card */}
+      {/* Success / Offline Confirmation Card */}
       {createdPatient && (
-        <div className="mb-6 p-5 rounded bg-emerald-50 border border-emerald-200">
-          <div className="flex items-center justify-between border-b border-emerald-200 pb-3 mb-3">
+        <div className={`mb-6 p-5 rounded border ${
+          createdPatient.isOffline 
+            ? 'bg-amber-50/80 border-amber-200' 
+            : 'bg-emerald-50 border-emerald-200'
+        }`}>
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-3">
             <div>
-              <h2 className="text-base font-bold text-emerald-950">Patient Record Created Successfully</h2>
-              <p className="text-xs text-emerald-800">Patient Number: {createdPatient.id}</p>
+              <h2 className="text-base font-bold text-slate-900">
+                {createdPatient.isOffline ? 'Patient Record Saved Locally (Offline)' : 'Patient Record Created Successfully'}
+              </h2>
+              <p className="text-xs text-slate-600">Patient Reference: {createdPatient.id}</p>
             </div>
-            <span className="text-xs font-semibold px-2 py-1 rounded bg-emerald-200 text-emerald-900">
-              Active Record
+            <span className={`text-xs font-semibold px-2.5 py-1 rounded ${
+              createdPatient.isOffline 
+                ? 'bg-amber-200 text-amber-900 border border-amber-300' 
+                : 'bg-emerald-200 text-emerald-900'
+            }`}>
+              {createdPatient.isOffline ? 'Saved Locally (Will Sync)' : 'Active Server Record'}
             </span>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div className="p-2.5 rounded bg-white border border-emerald-100">
+            <div className="p-2.5 rounded bg-white border border-slate-200">
               <span className="text-slate-500 block">Full Name</span>
               <span className="font-semibold text-slate-900 text-sm">{createdPatient.full_name}</span>
             </div>
-            <div className="p-2.5 rounded bg-white border border-emerald-100">
+            <div className="p-2.5 rounded bg-white border border-slate-200">
               <span className="text-slate-500 block">Mobile Number</span>
               <span className="font-semibold text-slate-900 text-sm">+91 {createdPatient.phone}</span>
             </div>
-            <div className="p-2.5 rounded bg-white border border-emerald-100">
+            <div className="p-2.5 rounded bg-white border border-slate-200">
               <span className="text-slate-500 block">Aadhaar (Masked)</span>
               <span className="font-semibold text-slate-900 text-sm font-mono">{createdPatient.aadhaar_masked}</span>
             </div>
-            <div className="p-2.5 rounded bg-white border border-emerald-100">
+            <div className="p-2.5 rounded bg-white border border-slate-200">
               <span className="text-slate-500 block">Age / Gender</span>
               <span className="font-semibold text-slate-900 text-sm">{createdPatient.age || 'N/A'} yrs / {createdPatient.gender || 'N/A'}</span>
             </div>

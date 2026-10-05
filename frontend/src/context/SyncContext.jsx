@@ -6,15 +6,23 @@ const SyncContext = createContext(null);
 export const SyncProvider = ({ children }) => {
   const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [pendingCount, setPendingCount] = useState(0);
+  const [pendingVitals, setPendingVitals] = useState(0);
+  const [pendingPatients, setPendingPatients] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     // Initial count
-    offlineSyncService.getQueueCount().then(setPendingCount);
+    offlineSyncService.getDetailedQueueCounts().then((counts) => {
+      setPendingCount(counts.total);
+      setPendingVitals(counts.vitals);
+      setPendingPatients(counts.patients);
+    });
 
     const unsubscribe = offlineSyncService.subscribe((status) => {
       setIsOnline(status.isOnline);
       setPendingCount(status.pendingCount);
+      setPendingVitals(status.pendingVitals || 0);
+      setPendingPatients(status.pendingPatients || 0);
       setIsSyncing(status.isSyncing);
     });
 
@@ -29,8 +37,21 @@ export const SyncProvider = ({ children }) => {
     return await offlineSyncService.enqueueRecord(record);
   };
 
+  const enqueuePatientRecord = async (patient) => {
+    return await offlineSyncService.enqueuePatientRecord(patient);
+  };
+
   return (
-    <SyncContext.Provider value={{ isOnline, pendingCount, isSyncing, triggerSync, enqueueRecord }}>
+    <SyncContext.Provider value={{ 
+      isOnline, 
+      pendingCount, 
+      pendingVitals, 
+      pendingPatients, 
+      isSyncing, 
+      triggerSync, 
+      enqueueRecord,
+      enqueuePatientRecord 
+    }}>
       {children}
     </SyncContext.Provider>
   );
