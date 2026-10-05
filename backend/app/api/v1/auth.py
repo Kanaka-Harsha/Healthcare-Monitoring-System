@@ -1,11 +1,21 @@
 from datetime import datetime, timezone
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
 from app.db.session import get_db
 from app.core.security import verify_password, create_access_token
-from app.core.otp_service import generate_numeric_otp, send_otp_to_phone, get_otp_expiry, verify_twilio_otp
+from app.core.otp_service import (
+    generate_numeric_otp, 
+    send_otp_to_phone, 
+    get_otp_expiry, 
+    verify_twilio_otp,
+    check_otp_rate_limit,
+    constant_time_compare,
+    register_failed_otp_attempt,
+    is_otp_locked_out,
+    reset_otp_attempts
+)
 from app.models.user import User
 from app.models.patient import Patient
 from app.models.session import DoctorAccessSession
@@ -67,12 +77,23 @@ def login(
 @router.post("/patient/request-otp")
 def patient_request_otp(
     payload: RequestPatientOTP,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
     Generate and send an OTP for a Patient to log in and view their personal health records.
+    Protected with rate-limiting cooldown window and non-blocking background SMS dispatch.
     """
     clean_phone = "".join(filter(str.isdigit, payload.phone))[-10:]
+    
+    # 1. Rate-limiting check
+    is_allowed, remaining = check_otp_rate_limit(clean_phone)
+    if not is_allowed:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Please wait {remaining} seconds before requesting a new verification code."
+        )
+
     patient = db.query(Patient).filter(Patient.phone == clean_phone).first()
     
     if not patient:
@@ -82,7 +103,9 @@ def patient_request_otp(
         )
 
     otp_code = generate_numeric_otp(6)
-    send_otp_to_phone(clean_phone, otp_code, patient.full_name)
+    
+    # Dispatch SMS in background task to eliminate network blocking delay
+    background_tasks.add_task(send_otp_to_phone, clean_phone, otp_code, patient.full_name)
 
     # Invalidate old patient login sessions and save new
     db.query(DoctorAccessSession).filter(
@@ -91,7 +114,6 @@ def patient_request_otp(
     ).delete()
 
     # Reuse DoctorAccessSession model for verification
-    # Using patient id as doctor_id anchor or create patient auth session
     session = DoctorAccessSession(
         doctor_id=patient.id,  # self-access
         patient_id=patient.id,
@@ -116,8 +138,17 @@ def patient_verify_otp(
 ):
     """
     Verify Patient OTP and generate a JWT token with 'patient' role.
+    Protected with brute-force attempt lockout and constant-time comparison.
     """
     clean_phone = "".join(filter(str.isdigit, payload.phone))[-10:]
+    
+    # Check brute-force lockout
+    if is_otp_locked_out(clean_phone):
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed attempts. For your security, this verification code has been locked. Please request a new code."
+        )
+
     patient = db.query(Patient).filter(Patient.phone == clean_phone).first()
 
     if not patient:
@@ -130,16 +161,21 @@ def patient_verify_otp(
     ).order_by(DoctorAccessSession.created_at.desc()).first()
 
     is_valid = False
-    if session and session.otp_code == payload.otp.strip():
+    if session and constant_time_compare(session.otp_code, payload.otp):
         is_valid = True
     elif verify_twilio_otp(clean_phone, payload.otp.strip()):
         is_valid = True
 
     if not is_valid:
+        attempts = register_failed_otp_attempt(clean_phone)
+        remaining_tries = max(0, 5 - attempts)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired OTP. Please request a new one."
+            detail=f"Invalid or expired OTP. ({remaining_tries} attempts remaining)" if remaining_tries > 0 else "Invalid OTP. Code locked due to multiple failed attempts."
         )
+
+    # Success: reset failed attempt counter
+    reset_otp_attempts(clean_phone)
 
     if session:
         session.is_verified = True

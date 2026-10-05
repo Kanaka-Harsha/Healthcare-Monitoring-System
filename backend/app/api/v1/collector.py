@@ -10,7 +10,7 @@ from app.core.security import hash_aadhaar, mask_aadhaar
 from app.models.user import User
 from app.models.patient import Patient
 from app.models.vitals import VitalsRecord
-from app.schemas.patient import PatientCreate, PatientOut
+from app.schemas.patient import PatientCreate, PatientOut, BatchPatientSyncRequest
 from app.schemas.vitals import VitalsRecordCreate, BatchVitalsSyncRequest, VitalsRecordOut, VitalsWithPatientOut
 from app.api.deps import get_current_user, require_role, log_audit_event
 
@@ -102,6 +102,86 @@ def register_or_get_patient(
 
     return new_patient
 
+@router.post("/patient/batch-sync")
+def batch_sync_offline_patients(
+    payload: BatchPatientSyncRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(collector_or_admin)
+):
+    """
+    Offline-first sync endpoint for patient registrations:
+    Receives batch of locally registered patients and health histories when connection is restored.
+    """
+    synced_count = 0
+    updated_count = 0
+    errors = []
+
+    for item in payload.patients:
+        try:
+            clean_phone = "".join(filter(str.isdigit, item.phone))[-10:]
+            aadhaar_h = hash_aadhaar(item.aadhaar_number)
+            aadhaar_m = mask_aadhaar(item.aadhaar_number)
+
+            patient = db.query(Patient).filter(
+                or_(
+                    Patient.phone == clean_phone,
+                    Patient.aadhaar_hash == aadhaar_h
+                )
+            ).first()
+
+            if patient:
+                # Update details and merge questionnaire if needed
+                patient.full_name = item.full_name
+                patient.phone = clean_phone
+                patient.aadhaar_masked = aadhaar_m
+                patient.aadhaar_hash = aadhaar_h
+                if item.age is not None:
+                    patient.age = item.age
+                if item.gender:
+                    patient.gender = item.gender
+                if item.address:
+                    patient.address = item.address
+                if item.emergency_contact:
+                    patient.emergency_contact = item.emergency_contact
+                if item.medical_history:
+                    patient.medical_history = item.medical_history
+                updated_count += 1
+            else:
+                new_patient = Patient(
+                    full_name=item.full_name,
+                    phone=clean_phone,
+                    aadhaar_masked=aadhaar_m,
+                    aadhaar_hash=aadhaar_h,
+                    age=item.age,
+                    gender=item.gender,
+                    address=item.address,
+                    emergency_contact=item.emergency_contact,
+                    medical_history=item.medical_history
+                )
+                db.add(new_patient)
+                synced_count += 1
+        except Exception as e:
+            errors.append(f"Failed to process patient {item.full_name}: {str(e)}")
+
+    db.commit()
+
+    log_audit_event(
+        db=db,
+        action="OFFLINE_PATIENT_BATCH_SYNC",
+        user_id=current_user.id,
+        resource_type="patient",
+        details=f"Registrar/Collector {current_user.full_name} synced {synced_count} new patients, updated {updated_count} records",
+        ip_address=request.client.host if request.client else None
+    )
+
+    return {
+        "success": True,
+        "synced_count": synced_count,
+        "updated_count": updated_count,
+        "errors": errors
+    }
+
 @router.post("/vitals", response_model=VitalsRecordOut)
 def submit_vitals(
     payload: VitalsRecordCreate,
@@ -119,15 +199,27 @@ def submit_vitals(
         patient = db.query(Patient).filter(Patient.id == payload.patient_id).first()
     elif payload.patient_phone:
         clean_phone = "".join(filter(str.isdigit, payload.patient_phone))[-10:]
-        patient = db.query(Patient).filter(Patient.phone == clean_phone).first()
+        aadhaar_h = hash_aadhaar(payload.patient_aadhaar) if payload.patient_aadhaar else None
         
-        if not patient and payload.patient_name and payload.patient_aadhaar:
+        filter_expr = (Patient.phone == clean_phone)
+        if aadhaar_h:
+            filter_expr = or_(Patient.phone == clean_phone, Patient.aadhaar_hash == aadhaar_h)
+            
+        patient = db.query(Patient).filter(filter_expr).first()
+        
+        if patient:
+            # Update phone if provided
+            if clean_phone and patient.phone != clean_phone:
+                patient.phone = clean_phone
+                db.commit()
+                db.refresh(patient)
+        elif payload.patient_name and payload.patient_aadhaar:
             # Auto-register on the fly
             patient = Patient(
                 full_name=payload.patient_name,
                 phone=clean_phone,
                 aadhaar_masked=mask_aadhaar(payload.patient_aadhaar),
-                aadhaar_hash=hash_aadhaar(payload.patient_aadhaar),
+                aadhaar_hash=aadhaar_h,
                 age=payload.patient_age,
                 gender=payload.patient_gender
             )
@@ -208,14 +300,20 @@ def batch_sync_offline_vitals(
             
             if not patient and item.patient_phone:
                 clean_phone = "".join(filter(str.isdigit, item.patient_phone))[-10:]
-                patient = db.query(Patient).filter(Patient.phone == clean_phone).first()
+                aadhaar_h = hash_aadhaar(item.patient_aadhaar) if item.patient_aadhaar else None
+                
+                filter_expr = (Patient.phone == clean_phone)
+                if aadhaar_h:
+                    filter_expr = or_(Patient.phone == clean_phone, Patient.aadhaar_hash == aadhaar_h)
+                    
+                patient = db.query(Patient).filter(filter_expr).first()
                 
                 if not patient and item.patient_name and item.patient_aadhaar:
                     patient = Patient(
                         full_name=item.patient_name,
                         phone=clean_phone,
                         aadhaar_masked=mask_aadhaar(item.patient_aadhaar),
-                        aadhaar_hash=hash_aadhaar(item.patient_aadhaar),
+                        aadhaar_hash=aadhaar_h,
                         age=item.patient_age,
                         gender=item.patient_gender
                     )

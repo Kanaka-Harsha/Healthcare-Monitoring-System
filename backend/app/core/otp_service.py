@@ -1,14 +1,73 @@
-import random
+import secrets
 import string
+import hmac
+import time
 import requests
+from typing import Tuple
 from datetime import datetime, timedelta, timezone
 from app.core.config import settings
 from app.core.logger import otp_logger
 
+# In-memory security rate-limiting and attempt trackers
+_OTP_RATE_LIMIT = {}    # phone -> last_requested_timestamp
+_OTP_ATTEMPTS = {}      # phone -> failed_attempts_count
+
+COOLDOWN_SECONDS = 30
+MAX_FAILED_ATTEMPTS = 5
+
+def check_otp_rate_limit(phone: str) -> Tuple[bool, int]:
+    """
+    Checks if an OTP request is within the cooldown window.
+    Returns (is_allowed, remaining_seconds).
+    """
+    clean = "".join(filter(str.isdigit, phone))[-10:]
+    now = time.time()
+    last_time = _OTP_RATE_LIMIT.get(clean, 0)
+    elapsed = now - last_time
+    if elapsed < COOLDOWN_SECONDS:
+        return False, int(COOLDOWN_SECONDS - elapsed)
+    _OTP_RATE_LIMIT[clean] = now
+    # Reset failed attempts count on new valid OTP generation
+    _OTP_ATTEMPTS[clean] = 0
+    return True, 0
+
+def register_failed_otp_attempt(phone: str) -> int:
+    """
+    Increments failed OTP guess count. Returns current count.
+    """
+    clean = "".join(filter(str.isdigit, phone))[-10:]
+    current = _OTP_ATTEMPTS.get(clean, 0) + 1
+    _OTP_ATTEMPTS[clean] = current
+    return current
+
+def is_otp_locked_out(phone: str) -> bool:
+    """
+    Returns True if failed attempts exceed limit.
+    """
+    clean = "".join(filter(str.isdigit, phone))[-10:]
+    return _OTP_ATTEMPTS.get(clean, 0) >= MAX_FAILED_ATTEMPTS
+
+def reset_otp_attempts(phone: str):
+    clean = "".join(filter(str.isdigit, phone))[-10:]
+    _OTP_ATTEMPTS.pop(clean, None)
+
 def generate_numeric_otp(length: int = 6) -> str:
+    """
+    Cryptographically secure pseudorandom numeric OTP generator.
+    """
     if settings.DEV_OTP_MODE and settings.DEFAULT_DEV_OTP:
         return settings.DEFAULT_DEV_OTP
-    return "".join(random.choices(string.digits, k=length))
+    # Use secrets for cryptographic randomness
+    digits = string.digits
+    return "".join(secrets.choice(digits) for _ in range(length))
+
+def constant_time_compare(val1: str, val2: str) -> bool:
+    """
+    Constant-time string comparison to prevent timing attacks.
+    """
+    if val1 is None or val2 is None:
+        return False
+    return hmac.compare_digest(str(val1).strip(), str(val2).strip())
 
 def get_otp_expiry() -> datetime:
     return datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_EXPIRY_MINUTES)
@@ -27,13 +86,12 @@ def format_e164_phone(phone: str, default_country_code: str = "+91") -> str:
 
 def send_otp_to_phone(phone: str, otp: str, patient_name: str = "Patient") -> bool:
     """
-    Dispatches real SMS OTP using Twilio Verify Service (bypasses carrier trial template restrictions)
-    or standard Twilio Programmable SMS API.
+    Dispatches real SMS OTP using Twilio Verify Service or standard Twilio Programmable SMS API.
     """
     e164_phone = format_e164_phone(phone)
 
     otp_logger.info(
-        f"[OTP GENERATED] SwastGrama | Phone: {e164_phone} | Patient: {patient_name} | Code: {otp} | Expiry: {settings.OTP_EXPIRY_MINUTES} mins"
+        f"[OTP GENERATED] SwasthGrama | Phone: {e164_phone} | Patient: {patient_name} | Code: {otp} | Expiry: {settings.OTP_EXPIRY_MINUTES} mins"
     )
 
     account_sid = settings.TWILIO_ACCOUNT_SID.strip() if settings.TWILIO_ACCOUNT_SID else ""
@@ -68,7 +126,7 @@ def send_otp_to_phone(phone: str, otp: str, patient_name: str = "Patient") -> bo
     if account_sid and auth_token and from_phone:
         try:
             url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
-            message_body = f"Your verification code is: {otp}"
+            message_body = f"SwasthGrama: Your secure verification code is {otp}. Valid for {settings.OTP_EXPIRY_MINUTES} minutes."
             data = {
                 "To": e164_phone,
                 "From": from_phone,

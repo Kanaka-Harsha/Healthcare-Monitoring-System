@@ -53,7 +53,17 @@ def test_full_flow():
         "phone": "9811122233"
     }, headers=doc_headers)
     assert res.status_code == 200, f"Doctor OTP request failed: {res.text}"
-    otp_code = res.json()["dev_otp"]
+    
+    otp_code = res.json().get("dev_otp")
+    if not otp_code:
+        # Query database session for the test
+        from app.db.session import SessionLocal
+        from app.models.session import DoctorAccessSession
+        db_s = SessionLocal()
+        s = db_s.query(DoctorAccessSession).order_by(DoctorAccessSession.created_at.desc()).first()
+        otp_code = s.otp_code if s else "123456"
+        db_s.close()
+
     print(f"✅ OTP generated and sent to patient: {otp_code}")
 
     print("\n🧪 5. Testing Doctor Verifying OTP to Unlock Record...")

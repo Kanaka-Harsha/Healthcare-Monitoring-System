@@ -12,6 +12,7 @@ class PatientCreate(BaseModel):
     address: Optional[str] = None
     emergency_contact: Optional[Dict[str, Any]] = None
     medical_history: Optional[Dict[str, Any]] = None
+    client_sync_id: Optional[str] = None
 
     @field_validator("phone")
     def validate_phone(cls, v: str) -> str:
@@ -26,6 +27,9 @@ class PatientCreate(BaseModel):
         if len(clean) != 12:
             raise ValueError("Aadhaar number must be exactly 12 digits")
         return clean
+
+class BatchPatientSyncRequest(BaseModel):
+    patients: list[PatientCreate]
 
 class PatientUpdate(BaseModel):
     full_name: Optional[str] = None
