@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api, { extractErrorMessage } from '../../services/api';
+import InstallAppButton from '../../components/common/InstallButton';
 
 const LoginPage = () => {
   const [activeTab, setActiveTab] = useState('staff'); // 'staff' | 'patient'
@@ -347,6 +348,11 @@ const LoginPage = () => {
             )}
           </div>
         )}
+
+        {/* Direct Install PWA Banner */}
+        <div className="mt-4 text-center">
+          <InstallAppButton variant="prominent" className="w-full" />
+        </div>
 
       </div>
     </div>

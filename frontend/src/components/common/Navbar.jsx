@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSync } from '../../context/SyncContext';
+import InstallAppButton from './InstallButton';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -48,46 +49,50 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Status & User Actions */}
-        {user && (
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            
-            {/* Status Indicator */}
-            <div className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded text-[11px] sm:text-xs font-medium border whitespace-nowrap ${
-              isOnline 
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                : 'bg-amber-50 text-amber-800 border-amber-200'
-            }`}>
-              {isOnline ? 'Connected' : 'Offline Mode'}
-            </div>
+        {/* Right Actions */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+          {/* Direct Install PWA Button */}
+          <InstallAppButton />
 
-            {/* Offline Records Button */}
-            {pendingCount > 0 && (
+          {/* Status & User Actions */}
+          {user && (
+            <>
+              {/* Status Indicator */}
+              <div className={`px-2 py-0.5 sm:px-2.5 sm:py-1 rounded text-[11px] sm:text-xs font-medium border whitespace-nowrap ${
+                isOnline 
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
+                  : 'bg-amber-50 text-amber-800 border-amber-200'
+              }`}>
+                {isOnline ? 'Connected' : 'Offline Mode'}
+              </div>
+
+              {/* Offline Records Button */}
+              {pendingCount > 0 && (
+                <button
+                  onClick={triggerSync}
+                  disabled={!isOnline || isSyncing}
+                  className="px-2.5 py-1 text-xs font-semibold rounded bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition disabled:opacity-50"
+                >
+                  {isSyncing ? 'Sending...' : `${pendingCount} Unsent (Sync)`}
+                </button>
+              )}
+
+              {/* User Role & Name */}
+              <div className="text-right hidden sm:block pl-2 border-l border-slate-200">
+                <p className="text-xs font-semibold text-slate-900">{user.full_name}</p>
+                <p className="text-[11px] text-teal-700 font-medium">{getRoleLabel(user.role)}</p>
+              </div>
+
+              {/* Logout Button */}
               <button
-                onClick={triggerSync}
-                disabled={!isOnline || isSyncing}
-                className="px-2.5 py-1 text-xs font-semibold rounded bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition disabled:opacity-50"
+                onClick={logout}
+                className="px-3 py-1.5 text-xs font-semibold rounded bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-slate-300 hover:border-rose-300 transition"
               >
-                {isSyncing ? 'Sending...' : `${pendingCount} Unsent Records (Send Now)`}
+                Sign Out
               </button>
-            )}
-
-            {/* User Role & Name */}
-            <div className="text-right hidden sm:block pl-2 border-l border-slate-200">
-              <p className="text-xs font-semibold text-slate-900">{user.full_name}</p>
-              <p className="text-[11px] text-teal-700 font-medium">{getRoleLabel(user.role)}</p>
-            </div>
-
-            {/* Logout Button */}
-            <button
-              onClick={logout}
-              className="px-3 py-1.5 text-xs font-semibold rounded bg-slate-100 hover:bg-rose-50 text-slate-700 hover:text-rose-700 border border-slate-300 hover:border-rose-300 transition"
-            >
-              Sign Out
-            </button>
-
-          </div>
-        )}
+            </>
+          )}
+        </div>
 
       </div>
     </header>
