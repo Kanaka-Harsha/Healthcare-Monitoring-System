@@ -31,7 +31,7 @@ const Navbar = () => {
         {/* Brand Name */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           <img 
-            src="/icon-192.png" 
+            src="/icon-192-v2.png" 
             alt="SwastGrama Logo" 
             className="w-8 h-8 sm:w-9 sm:h-9 rounded object-contain shadow-sm border border-teal-100 flex-shrink-0"
             onError={(e) => { e.currentTarget.style.display = 'none'; }}

@@ -80,7 +80,7 @@ export const InstallModalIOS = ({ isOpen, onClose }) => {
         </button>
 
         <div className="flex items-center gap-3 mb-4">
-          <img src="/icon-192.png" alt="App Icon" className="w-12 h-12 rounded-lg shadow-sm border border-teal-100" />
+          <img src="/icon-192-v2.png" alt="App Icon" className="w-12 h-12 rounded-lg shadow-sm border border-teal-100" />
           <div>
             <h3 className="text-base font-bold text-slate-900">Install SwastGrama</h3>
             <p className="text-xs text-slate-500">Install on your iPhone / iPad</p>

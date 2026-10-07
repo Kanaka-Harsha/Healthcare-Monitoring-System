@@ -157,7 +157,7 @@ const SignupPage = () => {
       <div className="max-w-md w-full mx-auto flex items-center justify-between pb-4">
         <div className="flex items-center gap-2">
           <img 
-            src="/icon-192.png" 
+            src="/icon-192-v2.png" 
             alt="SwasthGrama Logo" 
             className="w-9 h-9 rounded-lg object-contain shadow-sm border border-teal-100"
             onError={(e) => { e.currentTarget.style.display = 'none'; }}

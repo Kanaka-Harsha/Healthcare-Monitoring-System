@@ -106,7 +106,7 @@ const LoginPage = () => {
         {/* Header Branding */}
         <div className="text-center mb-6">
           <img 
-            src="/icon-192.png" 
+            src="/icon-192-v2.png" 
             alt="SwastGrama Logo" 
             className="w-14 h-14 mx-auto rounded-xl object-contain shadow-sm border border-teal-100 mb-3"
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
