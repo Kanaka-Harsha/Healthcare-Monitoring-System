@@ -4,10 +4,10 @@ const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/favicon.png',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/apple-touch-icon.png'
+  '/favicon-v2.png',
+  '/icon-192-v2.png',
+  '/icon-512-v2.png',
+  '/apple-touch-icon-v2.png'
 ];
 
 // Install Event - cache core shell

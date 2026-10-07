@@ -4,25 +4,25 @@
   "description": "Rural Healthcare Monitoring, Bluetooth Medical Devices & Patient Records Portal",
   "icons": [
     {
-      "src": "/pwa-192x192.png",
+      "src": "/pwa-192x192-v2.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "/icon-192.png",
+      "src": "/icon-192-v2.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "maskable"
     },
     {
-      "src": "/pwa-512x512.png",
+      "src": "/pwa-512x512-v2.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/icon-512-v2.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
