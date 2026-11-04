@@ -36,7 +36,7 @@ bool deviceConnected = false;
 bool oldDeviceConnected = false;
 
 // Interval between data transmissions (in milliseconds)
-const unsigned long SEND_INTERVAL_MS = 2000;
+const unsigned long SEND_INTERVAL_MS = 15000;
 unsigned long lastSendTime = 0;
 
 // Base baseline vitals for smooth, realistic drift
