@@ -325,6 +325,14 @@ const DoctorDashboard = () => {
                 Medical History
               </button>
               <button
+                onClick={() => setActiveTab('reports')}
+                className={`px-3 py-1.5 rounded text-xs font-semibold whitespace-nowrap transition touch-target ${
+                  activeTab === 'reports' ? 'bg-teal-800 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                }`}
+              >
+                Medical Reports ({unlockedFile.reports?.length || 0})
+              </button>
+              <button
                 onClick={() => setActiveTab('notes')}
                 className={`px-3 py-1.5 rounded text-xs font-semibold whitespace-nowrap transition touch-target ${
                   activeTab === 'notes' ? 'bg-teal-800 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -647,6 +655,56 @@ const DoctorDashboard = () => {
                     )}
                   </div>
                 ))
+              )}
+            </div>
+          )}
+
+          {/* TAB: Medical Reports */}
+          {activeTab === 'reports' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-200">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Uploaded Medical Reports & Scans</h3>
+                  <p className="text-xs text-slate-500">Reports uploaded for this patient during village healthcamp intake</p>
+                </div>
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
+                  {unlockedFile.reports?.length || 0} File(s)
+                </span>
+              </div>
+
+              {(!unlockedFile.reports || unlockedFile.reports.length === 0) ? (
+                <div className="p-8 text-center bg-white rounded border border-slate-200 text-xs text-slate-500">
+                  No additional medical reports uploaded for this patient yet.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {unlockedFile.reports.map((rep) => (
+                    <div key={rep.id} className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm space-y-2 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-center justify-between">
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-800 border border-teal-200">
+                            {rep.report_type}
+                          </span>
+                          <span className="text-[10px] text-slate-400">
+                            {new Date(rep.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-xs font-bold text-slate-900 mt-2 truncate">{rep.stored_filename}</p>
+                        <p className="text-[11px] text-slate-500">Uploaded by: {rep.uploaded_by_name || 'Staff'}</p>
+                      </div>
+                      <div className="pt-2 border-t border-slate-100 flex items-center justify-end">
+                        <a
+                          href={`/api/v1/reports/download/${rep.id}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-3 py-1.5 rounded bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold shadow-sm transition"
+                        >
+                          Download / View Report
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           )}

@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import api, { extractErrorMessage } from '../../services/api';
 import InstallAppButton from '../../components/common/InstallButton';
 
 const LoginPage = () => {
   const [activeTab, setActiveTab] = useState('staff'); // 'staff' | 'patient'
-  const { loginStaff, loginPatientWithOTP, loading } = useAuth();
+  const { login, loginPatient, loading } = useAuth();
   const navigate = useNavigate();
 
   // Staff Form State
@@ -14,67 +13,46 @@ const LoginPage = () => {
   const [staffPassword, setStaffPassword] = useState('');
   const [staffError, setStaffError] = useState('');
 
-  // Patient OTP Form State
+  // Patient Form State
   const [patientPhone, setPatientPhone] = useState('');
-  const [patientOtp, setPatientOtp] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
+  const [patientPin, setPatientPin] = useState('');
   const [patientError, setPatientError] = useState('');
-  const [patientSuccessMsg, setPatientSuccessMsg] = useState('');
-  const [otpLoading, setOtpLoading] = useState(false);
 
   const handleStaffLogin = async (e) => {
     e.preventDefault();
     setStaffError('');
-    if (!staffUsername || !staffPassword) {
-      setStaffError('Please enter your username/email and password.');
+    if (!staffUsername.trim() || !staffPassword) {
+      setStaffError('Please enter your username and password.');
       return;
     }
 
-    const res = await loginStaff(staffUsername, staffPassword);
+    const res = await login(staffUsername, staffPassword);
     if (res.success) {
       if (res.role === 'admin') navigate('/admin');
+      else if (res.role === 'higher_authority') navigate('/analytics');
       else if (res.role === 'doctor') navigate('/doctor');
-      else if (res.role === 'collector') navigate('/collector');
-      else if (res.role === 'registrar') navigate('/registration');
+      else if (res.role === 'camp_assistant' || res.role === 'collector') navigate('/collector');
+      else if (res.role === 'volunteer' || res.role === 'registrar') navigate('/registration');
       else navigate('/patient');
     } else {
       setStaffError(res.error);
     }
   };
 
-  const handleRequestPatientOtp = async (e) => {
+  const handlePatientLogin = async (e) => {
     e.preventDefault();
     setPatientError('');
-    setPatientSuccessMsg('');
     const clean = patientPhone.replace(/\D/g, '').slice(-10);
     if (clean.length < 10) {
-      setPatientError('Please enter a valid 10-digit mobile number.');
+      setPatientError('Please enter your 10-digit mobile number.');
+      return;
+    }
+    if (!patientPin) {
+      setPatientError('Please enter your login PIN or password.');
       return;
     }
 
-    setOtpLoading(true);
-    try {
-      const res = await api.post('/auth/patient/request-otp', { phone: clean });
-      if (res.data.success) {
-        setOtpSent(true);
-        setPatientSuccessMsg(`Verification code sent to +91 ${clean}`);
-      }
-    } catch (err) {
-      setPatientError(extractErrorMessage(err, 'Failed to send OTP. Make sure your phone number is registered.'));
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
-  const handlePatientVerifyOtp = async (e) => {
-    e.preventDefault();
-    setPatientError('');
-    if (!patientOtp) {
-      setPatientError('Please enter the 6-digit code.');
-      return;
-    }
-
-    const res = await loginPatientWithOTP(patientPhone, patientOtp);
+    const res = await loginPatient(clean, patientPin);
     if (res.success) {
       navigate('/patient');
     } else {
@@ -82,280 +60,228 @@ const LoginPage = () => {
     }
   };
 
-  // Demo Credentials Autofill
-  const autofillStaff = (role) => {
+  // Quick-Fill Demo Logins for Fast Review
+  const autofillUser = (role) => {
     if (role === 'admin') {
-      setStaffUsername('admin@healthcare.local');
+      setStaffUsername('admin');
       setStaffPassword('Admin@Healthcare2026');
     } else if (role === 'doctor') {
-      setStaffUsername('doctor@healthcare.local');
+      setStaffUsername('dr_sarah');
       setStaffPassword('Doctor@123');
-    } else if (role === 'collector') {
-      setStaffUsername('collector@healthcare.local');
-      setStaffPassword('Collector@123');
-    } else if (role === 'registrar') {
-      setStaffUsername('registrar@healthcare.local');
-      setStaffPassword('Registrar@123');
+    } else if (role === 'camp_assistant') {
+      setStaffUsername('assistant_alex');
+      setStaffPassword('Assistant@123');
+    } else if (role === 'volunteer') {
+      setStaffUsername('volunteer_maya');
+      setStaffPassword('Volunteer@123');
+    } else if (role === 'higher_authority') {
+      setStaffUsername('collector_rao');
+      setStaffPassword('Authority@123');
     }
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4 bg-slate-50">
-      <div className="w-full max-w-md">
+    <div className="min-h-[85vh] flex items-center justify-center py-10 px-4 sm:px-6">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-8 space-y-6">
         
-        {/* Header Branding */}
-        <div className="text-center mb-6">
-          <img 
-            src="/icon-192-v2.png" 
-            alt="SwastGrama Logo" 
-            className="w-14 h-14 mx-auto rounded-xl object-contain shadow-sm border border-teal-100 mb-3"
-            onError={(e) => { e.currentTarget.style.display = 'none'; }}
-          />
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            SwasthGrama
-          </h1>
-          <p className="text-sm text-slate-600 mt-1">
-            Rural Healthcare Monitoring & Medical Records Portal
+        {/* Header */}
+        <div className="text-center space-y-2">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-teal-50 border border-teal-100 text-teal-800 font-bold text-xl mb-1 shadow-sm">
+            SG
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Welcome to SwasthGrama</h2>
+          <p className="text-xs text-slate-500">
+            Sign in to record health checks, access medical advice, or view public health analytics.
           </p>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="bg-slate-200 p-1 rounded flex items-center mb-5">
+        {/* Tab Toggle: Staff / Higher Authority vs Citizen Patient */}
+        <div className="flex bg-slate-100 p-1 rounded-xl">
           <button
             type="button"
-            onClick={() => setActiveTab('staff')}
-            className={`flex-1 py-2 text-xs font-semibold rounded transition ${
+            onClick={() => { setActiveTab('staff'); setStaffError(''); }}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
               activeTab === 'staff'
-                ? 'bg-white text-slate-900 shadow-sm'
+                ? 'bg-white text-teal-900 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Staff & Doctor Login
+            Staff & Authorities
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('patient')}
-            className={`flex-1 py-2 text-xs font-semibold rounded transition ${
+            onClick={() => { setActiveTab('patient'); setPatientError(''); }}
+            className={`flex-1 py-2 text-xs font-bold rounded-lg transition ${
               activeTab === 'patient'
-                ? 'bg-white text-slate-900 shadow-sm'
+                ? 'bg-white text-teal-900 shadow-sm'
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            Patient Portal (SMS OTP)
+            Village Citizens / Patients
           </button>
         </div>
 
-        {/* Tab 1: Staff Login */}
+        {/* TAB 1: Staff & Authorities (Username & Password) */}
         {activeTab === 'staff' && (
-          <div className="bg-white p-6 sm:p-7 rounded border border-slate-200 shadow-sm">
-            <h2 className="text-base font-semibold text-slate-900 mb-4 pb-2 border-b border-slate-100">
-              Staff Portal Access
-            </h2>
-
-            <form onSubmit={handleStaffLogin} className="space-y-4">
-              
-              {staffError && (
-                <div className="p-3 rounded bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium">
-                  {staffError}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Email or Username
-                </label>
-                <input
-                  type="text"
-                  value={staffUsername}
-                  onChange={(e) => setStaffUsername(e.target.value)}
-                  placeholder="doctor@healthcare.local"
-                  required
-                  className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-teal-700 focus:ring-1 focus:ring-teal-700"
-                />
+          <form onSubmit={handleStaffLogin} className="space-y-4">
+            {staffError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-xs font-medium">
+                {staffError}
               </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  value={staffPassword}
-                  onChange={(e) => setStaffPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                  className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-teal-700 focus:ring-1 focus:ring-teal-700"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-2.5 px-4 rounded bg-teal-800 hover:bg-teal-900 text-white font-semibold text-sm transition shadow-sm flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
-              >
-                {loading ? (
-                  <>
-                    <span className="spinner-white"></span>
-                    <span>Signing in, please wait...</span>
-                  </>
-                ) : (
-                  'Sign In'
-                )}
-              </button>
-            </form>
-
-            {/* Quick Demo Credentials
-            <div className="mt-6 pt-4 border-t border-slate-200">
-              <p className="text-xs text-slate-500 font-medium text-center mb-2">
-                Quick Role Selector (Testing):
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => autofillStaff('registrar')}
-                  className="px-2 py-1.5 rounded bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs text-slate-700 font-medium transition text-center"
-                >
-                  1. User Registration
-                </button>
-                <button
-                  type="button"
-                  onClick={() => autofillStaff('collector')}
-                  className="px-2 py-1.5 rounded bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs text-slate-700 font-medium transition text-center"
-                >
-                  2. Healthcamp Assistant
-                </button>
-                <button
-                  type="button"
-                  onClick={() => autofillStaff('doctor')}
-                  className="px-2 py-1.5 rounded bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs text-slate-700 font-medium transition text-center"
-                >
-                  3. Doctor
-                </button>
-              </div>
-            </div> */}
-
-          </div>
-        )}
-
-        {/* Tab 2: Patient OTP Login */}
-        {activeTab === 'patient' && (
-          <div className="bg-white p-6 sm:p-7 rounded border border-slate-200 shadow-sm">
-            <h2 className="text-base font-semibold text-slate-900 mb-4 pb-2 border-b border-slate-100">
-              Patient Portal Access
-            </h2>
-
-            {!otpSent ? (
-              <form onSubmit={handleRequestPatientOtp} className="space-y-4">
-                
-                {patientError && (
-                  <div className="p-3 rounded bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium">
-                    {patientError}
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Registered Mobile Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={patientPhone}
-                    onChange={(e) => setPatientPhone(e.target.value)}
-                    placeholder="Enter 10-digit mobile number"
-                    required
-                    className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-teal-700 focus:ring-1 focus:ring-teal-700"
-                  />
-                  <p className="text-xs text-slate-500 mt-1">
-                    A 6-digit SMS verification code will be sent to your phone.
-                  </p>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={otpLoading}
-                  className="w-full py-2.5 px-4 rounded bg-teal-800 hover:bg-teal-900 text-white font-semibold text-sm transition shadow-sm flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
-                >
-                  {otpLoading ? (
-                    <>
-                      <span className="spinner-white"></span>
-                      <span>Sending code via SMS...</span>
-                    </>
-                  ) : (
-                    'Send Verification Code'
-                  )}
-                </button>
-              </form>
-            ) : (
-              <form onSubmit={handlePatientVerifyOtp} className="space-y-4">
-                
-                {patientSuccessMsg && (
-                  <div className="p-3 rounded bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-medium">
-                    {patientSuccessMsg}
-                  </div>
-                )}
-
-                {patientError && (
-                  <div className="p-3 rounded bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium">
-                    {patientError}
-                  </div>
-                )}
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Enter 6-Digit Code
-                  </label>
-                  <input
-                    type="text"
-                    value={patientOtp}
-                    onChange={(e) => setPatientOtp(e.target.value)}
-                    placeholder="Enter 6-digit code"
-                    maxLength={6}
-                    required
-                    className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-center tracking-widest font-mono text-base focus:outline-none focus:border-teal-700 focus:ring-1 focus:ring-teal-700"
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-2.5 px-4 rounded bg-teal-800 hover:bg-teal-900 text-white font-semibold text-sm transition shadow-sm flex items-center justify-center gap-2 mt-2 disabled:opacity-60"
-                >
-                  {loading ? (
-                    <>
-                      <span className="spinner-white"></span>
-                      <span>Verifying code...</span>
-                    </>
-                  ) : (
-                    'Verify & View Records'
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setOtpSent(false)}
-                  className="w-full text-center text-xs text-slate-600 hover:text-slate-900 underline pt-1"
-                >
-                  Use a different mobile number
-                </button>
-              </form>
             )}
-          </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Username</label>
+              <input
+                type="text"
+                required
+                value={staffUsername}
+                onChange={(e) => setStaffUsername(e.target.value)}
+                placeholder="e.g. admin or dr_sarah"
+                className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Password</label>
+              <input
+                type="password"
+                required
+                value={staffPassword}
+                onChange={(e) => setStaffPassword(e.target.value)}
+                placeholder="Enter your password"
+                className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 rounded-lg bg-teal-800 hover:bg-teal-900 text-white font-bold text-xs shadow-sm transition disabled:opacity-50"
+            >
+              {loading ? 'Checking credentials...' : 'Sign In'}
+            </button>
+
+            {/* Quick Demo Fill Buttons */}
+            <div className="pt-2 border-t border-slate-100">
+              <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center mb-2">
+                Quick Test Credentials
+              </span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[10px]">
+                <button
+                  type="button"
+                  onClick={() => autofillUser('admin')}
+                  className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 font-semibold text-slate-800 text-center"
+                >
+                  App Admin
+                </button>
+                <button
+                  type="button"
+                  onClick={() => autofillUser('higher_authority')}
+                  className="px-2 py-1 rounded bg-purple-50 hover:bg-purple-100 font-semibold text-purple-900 border border-purple-200 text-center"
+                >
+                  Higher Authority
+                </button>
+                <button
+                  type="button"
+                  onClick={() => autofillUser('doctor')}
+                  className="px-2 py-1 rounded bg-teal-50 hover:bg-teal-100 font-semibold text-teal-900 border border-teal-200 text-center"
+                >
+                  Doctor
+                </button>
+                <button
+                  type="button"
+                  onClick={() => autofillUser('camp_assistant')}
+                  className="px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 font-semibold text-blue-900 border border-blue-200 text-center"
+                >
+                  Camp Assistant
+                </button>
+                <button
+                  type="button"
+                  onClick={() => autofillUser('volunteer')}
+                  className="px-2 py-1 rounded bg-emerald-50 hover:bg-emerald-100 font-semibold text-emerald-900 border border-emerald-200 text-center"
+                >
+                  Volunteer
+                </button>
+              </div>
+            </div>
+
+            <div className="text-center pt-2">
+              <p className="text-[11px] text-slate-500">
+                Are you a Doctor or Assistant without an account?{' '}
+                <Link to="/signup" className="font-bold text-teal-800 hover:underline">
+                  Sign Up Here
+                </Link>
+              </p>
+            </div>
+          </form>
         )}
 
-        {/* Signup / New User Registration Prompt */}
-        <div className="mt-4 p-3 bg-white rounded-lg border border-slate-200 text-center shadow-sm">
-          <p className="text-xs text-slate-600">
-            Don't have an account?{' '}
-            <Link to="/signup" className="font-semibold text-teal-700 hover:text-teal-800 hover:underline">
-              Create an account (Staff & Patients)
-            </Link>
-          </p>
-        </div>
+        {/* TAB 2: Citizens / Patients (Phone Number + PIN) */}
+        {activeTab === 'patient' && (
+          <form onSubmit={handlePatientLogin} className="space-y-4">
+            
+            {/* Scanned in Village Notice */}
+            <div className="p-3 bg-teal-50/70 border border-teal-200 rounded-xl text-teal-900 text-xs space-y-1">
+              <span className="font-bold flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-teal-600"></span>
+                Village Healthcamp Notice
+              </span>
+              <p className="text-[11px] text-teal-800 leading-relaxed">
+                You can sign in after being scanned by our health worker in your village. Your 10-digit mobile number is your username.
+              </p>
+            </div>
 
-        {/* Direct Install PWA Banner */}
-        <div className="mt-4 text-center">
-          <InstallAppButton variant="prominent" className="w-full" />
-        </div>
+            {patientError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-lg text-xs font-medium">
+                {patientError}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Registered Mobile Number</label>
+              <div className="flex">
+                <span className="inline-flex items-center px-3 text-xs bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-slate-600 font-semibold">
+                  +91
+                </span>
+                <input
+                  type="tel"
+                  maxLength={10}
+                  required
+                  value={patientPhone}
+                  onChange={(e) => setPatientPhone(e.target.value.replace(/\D/g, ''))}
+                  placeholder="9876543210"
+                  className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Account PIN / Password
+              </label>
+              <input
+                type="password"
+                required
+                value={patientPin}
+                onChange={(e) => setPatientPin(e.target.value)}
+                placeholder="PIN given at camp (or last 4 digits of phone)"
+                className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium"
+              />
+              <p className="text-[10px] text-slate-500 mt-1">
+                Default PIN is usually the last 4 digits of your phone number unless you changed it.
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-2.5 rounded-lg bg-teal-800 hover:bg-teal-900 text-white font-bold text-xs shadow-sm transition disabled:opacity-50"
+            >
+              {loading ? 'Finding your records...' : 'View My Health Numbers'}
+            </button>
+          </form>
+        )}
 
       </div>
     </div>

@@ -5,49 +5,92 @@ import bluetoothService from '../../services/bluetoothService';
 import BluetoothModal from '../../components/bluetooth/BluetoothModal';
 import LiveVitalsWidget from '../../components/bluetooth/LiveVitalsWidget';
 
+// ─── Step indicator ───────────────────────────────────────────────────────────
+const StepBadge = ({ num, label, active, done }) => (
+  <div className={`flex items-center gap-2 ${active ? 'opacity-100' : 'opacity-40'}`}>
+    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 ${
+      done ? 'bg-emerald-600 border-emerald-600 text-white' :
+      active ? 'bg-teal-800 border-teal-800 text-white' :
+      'bg-white border-slate-300 text-slate-500'
+    }`}>
+      {done ? '✓' : num}
+    </div>
+    <span className="text-xs font-semibold text-slate-700 hidden sm:inline">{label}</span>
+  </div>
+);
+
+// ─── Risk badge ────────────────────────────────────────────────────────────────
+const RiskBadge = ({ risk }) => {
+  const map = {
+    Red: 'bg-red-100 text-red-800 border-red-300',
+    Orange: 'bg-orange-100 text-orange-800 border-orange-300',
+    Green: 'bg-emerald-100 text-emerald-800 border-emerald-300',
+  };
+  return (
+    <span className={`px-2 py-0.5 rounded text-xs font-bold border ${map[risk] || 'bg-slate-100 text-slate-700 border-slate-300'}`}>
+      {risk === 'Red' ? '🔴 Critical' : risk === 'Orange' ? '🟠 Borderline' : '🟢 Normal'}
+    </span>
+  );
+};
+
+// ─── Main Component ────────────────────────────────────────────────────────────
 const CollectorDashboard = () => {
   const { isOnline, pendingCount, triggerSync, enqueueRecord } = useSync();
   const [isBluetoothModalOpen, setIsBluetoothModalOpen] = useState(false);
   const [liveVitals, setLiveVitals] = useState(null);
   const [isBLEConnected, setIsBLEConnected] = useState(bluetoothService.isConnected);
 
-  // Form State
-  const [fullName, setFullName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [aadhaar, setAadhaar] = useState('');
-  const [age, setAge] = useState('');
-  const [gender, setGender] = useState('Male');
+  // ── Wizard step: 1 = find patient, 2 = take vitals ──────────────────────────
+  const [step, setStep] = useState(1);
+  const [notification, setNotification] = useState(null);
 
-  // Vitals Form Inputs
+  // ── Step 1: patient search / quick register ──────────────────────────────────
+  const [searchPhone, setSearchPhone] = useState('');
+  const [searchResult, setSearchResult] = useState(null); // found patient from history
+  const [searching, setSearching] = useState(false);
+  const [showQuickReg, setShowQuickReg] = useState(false);
+
+  // Quick register mini-form (just basics for repeat visit / new camp registration)
+  const [qrName, setQrName] = useState('');
+  const [qrPhone, setQrPhone] = useState('');
+  const [qrAadhaar, setQrAadhaar] = useState('');
+  const [qrAge, setQrAge] = useState('');
+  const [qrGender, setQrGender] = useState('Male');
+  const [qrRegistering, setQrRegistering] = useState(false);
+
+  // ── Confirmed patient (from search or quick-reg) ─────────────────────────────
+  const [confirmedPatient, setConfirmedPatient] = useState(null);
+
+  // ── Step 2: Vitals form ───────────────────────────────────────────────────────
   const [systolicBP, setSystolicBP] = useState('');
   const [diastolicBP, setDiastolicBP] = useState('');
   const [heartRate, setHeartRate] = useState('');
   const [spo2, setSpo2] = useState('');
   const [temperature, setTemperature] = useState('36.6');
   const [bloodGlucose, setBloodGlucose] = useState('');
-
-  // UI state
   const [submitting, setSubmitting] = useState(false);
-  const [notification, setNotification] = useState(null);
+  const [lastVitalsResult, setLastVitalsResult] = useState(null); // { risk_level, ... }
+
+  // ── History panel ─────────────────────────────────────────────────────────────
   const [historyRecords, setHistoryRecords] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historySearch, setHistorySearch] = useState('');
 
-  // Listen to BLE data
+  // ─────────────────────────────────────────────────────────────────────────────
   useEffect(() => {
     const unsubscribe = bluetoothService.subscribe((event) => {
-      if (event.status === 'connected') {
-        setIsBLEConnected(true);
-      } else if (event.status === 'disconnected') {
-        setIsBLEConnected(false);
-      } else if (event.status === 'data') {
-        setLiveVitals(event.vitals);
-      }
+      if (event.status === 'connected') setIsBLEConnected(true);
+      else if (event.status === 'disconnected') setIsBLEConnected(false);
+      else if (event.status === 'data') setLiveVitals(event.vitals);
     });
-
     fetchHistory();
     return () => unsubscribe();
   }, []);
+
+  const notify = (type, message, ms = 5000) => {
+    setNotification({ type, message });
+    if (ms) setTimeout(() => setNotification(null), ms);
+  };
 
   const fetchHistory = async () => {
     if (!isOnline) return;
@@ -56,7 +99,7 @@ const CollectorDashboard = () => {
       const res = await api.get('/collector/history');
       setHistoryRecords(res.data || []);
     } catch (err) {
-      console.error('Failed to fetch history:', err);
+      console.error('History fetch error:', err);
     } finally {
       setLoadingHistory(false);
     }
@@ -69,41 +112,102 @@ const CollectorDashboard = () => {
     if (v.spo2) setSpo2(v.spo2);
     if (v.temperature) setTemperature(v.temperature);
     if (v.blood_glucose) setBloodGlucose(v.blood_glucose);
-
-    setNotification({
-      type: 'success',
-      message: 'Live vitals transferred into screening form successfully.'
-    });
-    setTimeout(() => setNotification(null), 3000);
+    notify('success', 'Device readings filled into the vitals form.');
   };
 
-  const handleSubmitScreening = async (e) => {
+  // ── Step 1a: Search existing patient from today's history ───────────────────
+  const handleSearchPatient = async (e) => {
     e.preventDefault();
-    setNotification(null);
-
-    // Validation
-    const cleanPhone = phone.replace(/\D/g, '').slice(-10);
-    const cleanAadhaar = aadhaar.replace(/\D/g, '');
-
-    if (!fullName.trim()) {
-      setNotification({ type: 'error', message: 'Patient full name is required.' });
-      return;
-    }
+    const cleanPhone = searchPhone.replace(/\D/g, '').slice(-10);
     if (cleanPhone.length < 10) {
-      setNotification({ type: 'error', message: 'Please enter a valid 10-digit mobile number.' });
+      notify('error', 'Please enter a valid 10-digit mobile number to search.');
       return;
     }
-    if (cleanAadhaar.length !== 12) {
-      setNotification({ type: 'error', message: 'Aadhaar card number must be exactly 12 digits.' });
+    setSearching(true);
+    setSearchResult(null);
+    setShowQuickReg(false);
+    try {
+      const res = await api.get('/collector/history');
+      const records = res.data || [];
+      const found = records.find(r => r.patient_phone === cleanPhone);
+      if (found) {
+        setSearchResult(found);
+        notify('success', `Found: ${found.patient_name}. Click "Use This Patient" to continue.`);
+      } else {
+        notify('warning', 'No recent record for this phone number. Use the form below to register and continue.');
+        setShowQuickReg(true);
+        setQrPhone(cleanPhone);
+      }
+    } catch (err) {
+      notify('error', extractErrorMessage(err, 'Could not search. Please check your connection.'));
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleUseFoundPatient = () => {
+    setConfirmedPatient({
+      id: searchResult.patient_id || null,
+      phone: searchResult.patient_phone,
+      name: searchResult.patient_name,
+    });
+    setStep(2);
+    notify('success', `Ready to record vitals for ${searchResult.patient_name}.`);
+  };
+
+  // ── Step 1b: Quick-register patient (then proceed to vitals) ────────────────
+  const handleQuickRegister = async (e) => {
+    e.preventDefault();
+    const cleanPhone = qrPhone.replace(/\D/g, '').slice(-10);
+    const cleanAadhaar = qrAadhaar.replace(/\D/g, '');
+
+    if (!qrName.trim()) { notify('error', 'Patient full name is required.'); return; }
+    if (cleanPhone.length < 10) { notify('error', 'Enter a valid 10-digit mobile number.'); return; }
+    if (cleanAadhaar.length !== 12) { notify('error', 'Aadhaar number must be exactly 12 digits.'); return; }
+
+    const payload = {
+      full_name: qrName.trim(),
+      phone: cleanPhone,
+      aadhaar_number: cleanAadhaar,
+      age: qrAge ? parseInt(qrAge) : null,
+      gender: qrGender,
+    };
+
+    setQrRegistering(true);
+    if (isOnline) {
+      try {
+        const res = await api.post('/collector/patient', payload);
+        const pat = res.data;
+        setConfirmedPatient({ id: pat.id, phone: pat.phone, name: pat.full_name });
+        setStep(2);
+        fetchHistory();
+        notify('success', `${pat.full_name} registered. Now record their vitals.`);
+      } catch (err) {
+        notify('error', extractErrorMessage(err, 'Could not register patient. Please check the form.'));
+      } finally {
+        setQrRegistering(false);
+      }
+    } else {
+      // Offline: save registration to sync queue, still allow vitals entry
+      await enqueueRecord({ type: 'patient', ...payload });
+      setConfirmedPatient({ id: null, phone: cleanPhone, name: qrName.trim() });
+      setStep(2);
+      notify('warning', 'No internet — patient info saved on this device and will sync when connected.');
+      setQrRegistering(false);
+    }
+  };
+
+  // ── Step 2: Submit vitals ───────────────────────────────────────────────────
+  const handleSubmitVitals = async (e) => {
+    e.preventDefault();
+    if (!confirmedPatient) {
+      notify('error', 'No patient selected. Please go back to Step 1.');
       return;
     }
 
     const payload = {
-      patient_name: fullName.trim(),
-      patient_phone: cleanPhone,
-      patient_aadhaar: cleanAadhaar,
-      patient_age: age ? parseInt(age) : null,
-      patient_gender: gender,
+      patient_id: confirmedPatient.id || undefined,
+      patient_phone: confirmedPatient.phone,
       systolic_bp: systolicBP ? parseFloat(systolicBP) : null,
       diastolic_bp: diastolicBP ? parseFloat(diastolicBP) : null,
       heart_rate: heartRate ? parseInt(heartRate) : null,
@@ -111,78 +215,71 @@ const CollectorDashboard = () => {
       temperature: temperature ? parseFloat(temperature) : null,
       blood_glucose: bloodGlucose ? parseFloat(bloodGlucose) : null,
       device_id: liveVitals?.device_id || 'MANUAL-COLLECTOR',
-      recorded_at: new Date().toISOString()
+      recorded_at: new Date().toISOString(),
     };
 
     setSubmitting(true);
-
     if (isOnline) {
       try {
-        await api.post('/collector/vitals', payload);
-        setNotification({
-          type: 'success',
-          message: `Screening for ${fullName} saved to patient health record.`
-        });
-        resetForm();
+        const res = await api.post('/collector/vitals', payload);
+        setLastVitalsResult(res.data);
         fetchHistory();
+        resetVitalsForm();
       } catch (err) {
         if (!err.response || err.message === 'Network Error' || err.code === 'ECONNABORTED') {
-          await enqueueRecord(payload);
-          setNotification({
-            type: 'warning',
-            message: 'No internet connection: Screening safely saved on this device. It will upload when connected.'
-          });
-          resetForm();
+          await enqueueRecord({ type: 'vitals', ...payload });
+          notify('warning', 'No connection — vitals saved on this device and will upload automatically when online.');
+          resetVitalsForm();
         } else {
-          setNotification({
-            type: 'error',
-            message: extractErrorMessage(err, 'Failed to submit screening. Please check form details.')
-          });
+          notify('error', extractErrorMessage(err, 'Could not save vitals. Please check form.'));
         }
       } finally {
         setSubmitting(false);
       }
     } else {
-      await enqueueRecord(payload);
-      setNotification({
-        type: 'warning',
-        message: 'Saved on this device. It will automatically upload when connected.'
-      });
-      resetForm();
+      await enqueueRecord({ type: 'vitals', ...payload });
+      notify('warning', 'Saved on this device. Will upload when connected.');
+      resetVitalsForm();
       setSubmitting(false);
     }
   };
 
-  const resetForm = () => {
-    setFullName('');
-    setPhone('');
-    setAadhaar('');
-    setAge('');
-    setSystolicBP('');
-    setDiastolicBP('');
-    setHeartRate('');
-    setSpo2('');
-    setBloodGlucose('');
+  const resetVitalsForm = () => {
+    setSystolicBP(''); setDiastolicBP(''); setHeartRate('');
+    setSpo2(''); setTemperature('36.6'); setBloodGlucose('');
   };
 
-  const filteredHistory = historyRecords.filter((r) => 
-    r.patient_name.toLowerCase().includes(historySearch.toLowerCase()) ||
-    r.patient_phone.includes(historySearch) ||
-    r.patient_aadhaar_masked.includes(historySearch)
+  const handleStartNew = () => {
+    setStep(1);
+    setSearchPhone('');
+    setSearchResult(null);
+    setShowQuickReg(false);
+    setConfirmedPatient(null);
+    setLastVitalsResult(null);
+    setQrName(''); setQrPhone(''); setQrAadhaar('');
+    setQrAge(''); setQrGender('Male');
+    resetVitalsForm();
+    setNotification(null);
+  };
+
+  const filteredHistory = historyRecords.filter((r) =>
+    (r.patient_name || '').toLowerCase().includes(historySearch.toLowerCase()) ||
+    (r.patient_phone || '').includes(historySearch)
   );
 
+  // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-      
-      {/* Top Banner & Device Trigger */}
+
+      {/* ── Top Banner ──────────────────────────────────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded bg-white border border-slate-200 shadow-sm">
         <div>
           <span className="text-xs font-semibold px-2 py-0.5 rounded bg-teal-100 text-teal-800">
-            SwastGrama - Healthcamp & Assistant Scan
+            SwasthGrama — Healthcamp Screening Station
           </span>
-          <h1 className="text-xl font-bold text-slate-900 mt-1">Healthcamp Vitals Screening</h1>
+          <h1 className="text-xl font-bold text-slate-900 mt-1">Record Patient Vitals</h1>
           <p className="text-xs text-slate-600">
-            Record patient vital signs and capture wireless readings from medical health devices.
+            Step 1: Find or register the patient &nbsp;→&nbsp; Step 2: Enter their health readings.
           </p>
         </div>
 
@@ -196,7 +293,7 @@ const CollectorDashboard = () => {
                 : 'bg-teal-800 hover:bg-teal-900 text-white'
             }`}
           >
-            {isBLEConnected ? 'Device Connected' : 'Connect Medical Device'}
+            {isBLEConnected ? '✓ Device Connected' : 'Connect Medical Device'}
           </button>
 
           {pendingCount > 0 && (
@@ -205,26 +302,31 @@ const CollectorDashboard = () => {
               disabled={!isOnline}
               className="px-3 py-1.5 rounded text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition"
             >
-              Send {pendingCount} Saved Records
+              Upload {pendingCount} Saved Record{pendingCount > 1 ? 's' : ''}
             </button>
           )}
         </div>
       </div>
 
-      {/* Notifications */}
+      {/* ── Step Progress Indicator ─────────────────────────────────────────── */}
+      <div className="flex items-center gap-4 px-1">
+        <StepBadge num={1} label="Find / Register Patient" active={step >= 1} done={step > 1} />
+        <div className="flex-1 h-px bg-slate-200" />
+        <StepBadge num={2} label="Record Vital Signs" active={step >= 2} done={!!lastVitalsResult} />
+      </div>
+
+      {/* ── Notifications ──────────────────────────────────────────────────── */}
       {notification && (
-        <div className={`p-3 rounded text-xs font-medium border ${
-          notification.type === 'success' 
-            ? 'bg-emerald-50 border-emerald-300 text-emerald-900' 
-            : notification.type === 'warning'
-            ? 'bg-amber-50 border-amber-300 text-amber-900'
-            : 'bg-rose-50 border-rose-300 text-rose-900'
+        <div className={`p-3 rounded text-sm font-medium border ${
+          notification.type === 'success' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' :
+          notification.type === 'warning' ? 'bg-amber-50 border-amber-300 text-amber-900' :
+          'bg-rose-50 border-rose-300 text-rose-900'
         }`}>
           {notification.message}
         </div>
       )}
 
-      {/* Live Vitals Widget */}
+      {/* ── Live Vitals Widget ─────────────────────────────────────────────── */}
       <LiveVitalsWidget
         vitals={liveVitals}
         isConnected={isBLEConnected}
@@ -232,232 +334,349 @@ const CollectorDashboard = () => {
         onOpenModal={() => setIsBluetoothModalOpen(true)}
       />
 
-      {/* Main Grid: Screening Form & History */}
+      {/* ══════════════════════════════════════════════════════════════════════
+          MAIN GRID: Left = Wizard  |  Right = History
+         ══════════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        
-        {/* Left Col: Patient Intake & Vitals Form (7 Cols) */}
-        <div className="lg:col-span-7 bg-white p-5 sm:p-6 rounded border border-slate-200 shadow-sm space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
-              Patient Screening Form
-            </h2>
-            <span className="text-xs text-slate-500">
-              Aadhaar ID Auto-Masked
-            </span>
-          </div>
 
-          <form onSubmit={handleSubmitScreening} className="space-y-4">
-            
-            {/* 1. Demographics */}
-            <div className="space-y-3">
-              <h3 className="text-xs font-bold text-slate-700 uppercase">
-                1. Patient Information
-              </h3>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Ramesh Kumar"
-                    required
-                    className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:border-teal-700 focus:outline-none"
-                  />
-                </div>
+        {/* ── LEFT: Wizard ──────────────────────────────────────────────────── */}
+        <div className="lg:col-span-7 space-y-5">
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Mobile Number (10 Digits) *
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="10-digit number"
-                    maxLength={10}
-                    required
-                    className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:border-teal-700 focus:outline-none"
-                  />
-                </div>
+          {/* ════ STEP 1: Find / Register Patient ════ */}
+          {step === 1 && (
+            <div className="bg-white p-5 sm:p-6 rounded border border-slate-200 shadow-sm space-y-5">
+              <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
+                <div className="w-6 h-6 rounded-full bg-teal-800 text-white flex items-center justify-center text-xs font-bold">1</div>
+                <h2 className="text-sm font-bold text-slate-900">Find the Patient</h2>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Aadhaar Number (12 Digits) *
-                  </label>
-                  <input
-                    type="text"
-                    value={aadhaar}
-                    onChange={(e) => setAadhaar(e.target.value)}
-                    placeholder="12-digit Aadhaar"
-                    maxLength={14}
-                    required
-                    className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm font-mono focus:border-teal-700 focus:outline-none"
-                  />
-                </div>
-
+              {/* Search by phone */}
+              <form onSubmit={handleSearchPatient} className="space-y-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Age & Gender
+                    Patient's Mobile Number *
                   </label>
                   <div className="flex gap-2">
                     <input
-                      type="number"
-                      value={age}
-                      onChange={(e) => setAge(e.target.value)}
-                      placeholder="Age"
-                      min={0}
-                      max={120}
-                      className="w-1/2 px-2 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm text-center focus:border-teal-700 focus:outline-none"
+                      type="tel"
+                      value={searchPhone}
+                      onChange={(e) => setSearchPhone(e.target.value)}
+                      placeholder="Enter 10-digit mobile number"
+                      maxLength={10}
+                      className="flex-1 px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:border-teal-700 focus:outline-none"
                     />
-                    <select
-                      value={gender}
-                      onChange={(e) => setGender(e.target.value)}
-                      className="w-1/2 px-2 py-2 rounded bg-white border border-slate-300 text-slate-900 text-xs focus:border-teal-700 focus:outline-none"
+                    <button
+                      type="submit"
+                      disabled={searching}
+                      className="px-4 py-2 rounded bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold transition disabled:opacity-60"
                     >
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                    </select>
+                      {searching ? 'Searching...' : 'Find Patient'}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    If the patient visited a previous camp, their record will appear. Otherwise, use the form below to register them.
+                  </p>
+                </div>
+              </form>
+
+              {/* Found patient card */}
+              {searchResult && (
+                <div className="p-4 rounded bg-emerald-50 border border-emerald-200 space-y-3">
+                  <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">Patient Found</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">{searchResult.patient_name}</p>
+                      <p className="text-xs text-slate-600">📞 +91 {searchResult.patient_phone}</p>
+                      {searchResult.systolic_bp && (
+                        <p className="text-xs text-slate-500 mt-1">
+                          Last Visit BP: {searchResult.systolic_bp}/{searchResult.diastolic_bp} mmHg &nbsp;•&nbsp;
+                          SpO₂: {searchResult.spo2}%
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={handleUseFoundPatient}
+                      className="px-4 py-2 rounded bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold transition"
+                    >
+                      Use This Patient →
+                    </button>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* Quick registration (collapsed unless needed) */}
+              {!showQuickReg && !searchResult && (
+                <div className="pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickReg(true)}
+                    className="text-xs font-semibold text-teal-700 hover:text-teal-900 underline"
+                  >
+                    + Register a new patient (first-time visitor)
+                  </button>
+                </div>
+              )}
+
+              {showQuickReg && (
+                <form onSubmit={handleQuickRegister} className="space-y-4 pt-3 border-t border-slate-100">
+                  <p className="text-xs font-bold text-slate-700 uppercase tracking-wide">Register New Patient</p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
+                      <input
+                        type="text"
+                        value={qrName}
+                        onChange={(e) => setQrName(e.target.value)}
+                        placeholder="e.g. Ramesh Kumar"
+                        required
+                        className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:border-teal-700 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Mobile Number *</label>
+                      <input
+                        type="tel"
+                        value={qrPhone}
+                        onChange={(e) => setQrPhone(e.target.value)}
+                        placeholder="10-digit mobile"
+                        maxLength={10}
+                        required
+                        className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:border-teal-700 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Aadhaar Number (12 digits) *</label>
+                    <input
+                      type="text"
+                      value={qrAadhaar}
+                      onChange={(e) => setQrAadhaar(e.target.value)}
+                      placeholder="12-digit Aadhaar"
+                      maxLength={14}
+                      required
+                      className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm font-mono focus:border-teal-700 focus:outline-none"
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">Stored securely — only last 4 digits shown anywhere.</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Age</label>
+                      <input
+                        type="number"
+                        value={qrAge}
+                        onChange={(e) => setQrAge(e.target.value)}
+                        placeholder="e.g. 45"
+                        min={0} max={120}
+                        className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:border-teal-700 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Gender</label>
+                      <select
+                        value={qrGender}
+                        onChange={(e) => setQrGender(e.target.value)}
+                        className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:border-teal-700 focus:outline-none"
+                      >
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-slate-500 bg-blue-50 border border-blue-200 rounded p-2">
+                    ℹ️ The patient's phone number becomes their login username. Their default PIN will be the last 4 digits of their mobile number. Full address details can be filled in at the registration desk.
+                  </p>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="submit"
+                      disabled={qrRegistering}
+                      className="flex-1 py-2.5 rounded bg-teal-800 hover:bg-teal-900 text-white font-semibold text-sm transition disabled:opacity-60"
+                    >
+                      {qrRegistering ? 'Registering...' : 'Register & Continue to Vitals →'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setShowQuickReg(false); setQrName(''); setQrPhone(searchPhone); setQrAadhaar(''); }}
+                      className="px-3 py-2.5 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-semibold"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
+          )}
 
-            {/* 2. Vitals */}
-            <div className="space-y-3 pt-3 border-t border-slate-100">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-slate-700 uppercase">
-                  2. Vital Signs (Readings)
-                </h3>
-                {isBLEConnected && (
-                  <span className="text-xs text-teal-800 font-semibold">
-                    Device Paired
-                  </span>
-                )}
+          {/* ════ STEP 2: Vitals Form ════ */}
+          {step === 2 && (
+            <div className="bg-white p-5 sm:p-6 rounded border border-slate-200 shadow-sm space-y-5">
+
+              {/* Patient confirmation bar */}
+              <div className="flex items-center justify-between p-3 rounded bg-teal-50 border border-teal-200">
+                <div>
+                  <p className="text-xs text-teal-700 font-semibold uppercase tracking-wide">Recording vitals for</p>
+                  <p className="text-sm font-bold text-teal-900">{confirmedPatient?.name}</p>
+                  <p className="text-xs text-teal-600">📞 +91 {confirmedPatient?.phone}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setStep(1); setLastVitalsResult(null); }}
+                  className="text-xs text-teal-700 hover:text-teal-900 underline font-semibold"
+                >
+                  ← Change Patient
+                </button>
               </div>
 
-              {/* BP & Heart Rate */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Systolic BP
-                  </label>
-                  <input
-                    type="number"
-                    value={systolicBP}
-                    onChange={(e) => setSystolicBP(e.target.value)}
-                    placeholder="120"
-                    className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Diastolic BP
-                  </label>
-                  <input
-                    type="number"
-                    value={diastolicBP}
-                    onChange={(e) => setDiastolicBP(e.target.value)}
-                    placeholder="80"
-                    className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Pulse (BPM)
-                  </label>
-                  <input
-                    type="number"
-                    value={heartRate}
-                    onChange={(e) => setHeartRate(e.target.value)}
-                    placeholder="72"
-                    className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    SpO2 Oxygen (%)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={spo2}
-                    onChange={(e) => setSpo2(e.target.value)}
-                    placeholder="98"
-                    className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
-                  />
-                </div>
+              <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                <div className="w-6 h-6 rounded-full bg-teal-800 text-white flex items-center justify-center text-xs font-bold">2</div>
+                <h2 className="text-sm font-bold text-slate-900">Record Vital Signs</h2>
+                {isBLEConnected && <span className="text-xs text-teal-700 font-semibold ml-auto">Device Paired ✓</span>}
               </div>
 
-              {/* Temp & Glucose */}
-              <div className="grid grid-cols-2 gap-3">
+              {/* Vitals result card */}
+              {lastVitalsResult && (
+                <div className={`p-4 rounded border ${
+                  lastVitalsResult.risk_level === 'Red' ? 'bg-red-50 border-red-300' :
+                  lastVitalsResult.risk_level === 'Orange' ? 'bg-orange-50 border-orange-300' :
+                  'bg-emerald-50 border-emerald-300'
+                }`}>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs font-bold text-slate-700 uppercase">Vitals Saved — Health Status</p>
+                      <RiskBadge risk={lastVitalsResult.risk_level} />
+                      {lastVitalsResult.risk_level === 'Red' && (
+                        <p className="text-xs text-red-700 mt-1 font-semibold">⚠️ This patient needs immediate doctor attention.</p>
+                      )}
+                      {lastVitalsResult.risk_level === 'Orange' && (
+                        <p className="text-xs text-orange-700 mt-1">This patient has borderline readings — refer to doctor.</p>
+                      )}
+                    </div>
+                    <button
+                      onClick={handleStartNew}
+                      className="ml-4 px-4 py-2 rounded bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold"
+                    >
+                      Next Patient →
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <form onSubmit={handleSubmitVitals} className="space-y-4">
+                {/* BP & Heart Rate */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Temperature (°C)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={temperature}
-                    onChange={(e) => setTemperature(e.target.value)}
-                    placeholder="36.6"
-                    className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
-                  />
+                  <h3 className="text-xs font-bold text-slate-600 uppercase mb-2">Blood Pressure & Pulse</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Systolic BP <span className="text-slate-400 font-normal">(mmHg)</span></label>
+                      <input
+                        type="number"
+                        value={systolicBP}
+                        onChange={(e) => setSystolicBP(e.target.value)}
+                        placeholder="120"
+                        className="w-full px-2.5 py-2 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Diastolic BP <span className="text-slate-400 font-normal">(mmHg)</span></label>
+                      <input
+                        type="number"
+                        value={diastolicBP}
+                        onChange={(e) => setDiastolicBP(e.target.value)}
+                        placeholder="80"
+                        className="w-full px-2.5 py-2 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Pulse Rate <span className="text-slate-400 font-normal">(BPM)</span></label>
+                      <input
+                        type="number"
+                        value={heartRate}
+                        onChange={(e) => setHeartRate(e.target.value)}
+                        placeholder="72"
+                        className="w-full px-2.5 py-2 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Oxygen Level <span className="text-slate-400 font-normal">(SpO₂ %)</span></label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={spo2}
+                        onChange={(e) => setSpo2(e.target.value)}
+                        placeholder="98"
+                        className="w-full px-2.5 py-2 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
+                      />
+                    </div>
+                  </div>
                 </div>
 
+                {/* Temperature & Glucose */}
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Blood Glucose (mg/dL)
-                  </label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={bloodGlucose}
-                    onChange={(e) => setBloodGlucose(e.target.value)}
-                    placeholder="Optional (e.g. 110)"
-                    className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
-                  />
+                  <h3 className="text-xs font-bold text-slate-600 uppercase mb-2">Temperature & Blood Sugar</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Body Temperature <span className="text-slate-400 font-normal">(°C)</span></label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={temperature}
+                        onChange={(e) => setTemperature(e.target.value)}
+                        placeholder="36.6"
+                        className="w-full px-2.5 py-2 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">Blood Sugar <span className="text-slate-400 font-normal">(mg/dL, optional)</span></label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={bloodGlucose}
+                        onChange={(e) => setBloodGlucose(e.target.value)}
+                        placeholder="e.g. 110"
+                        className="w-full px-2.5 py-2 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:border-teal-700 focus:outline-none"
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
 
+                {/* Reference guide */}
+                <div className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded p-3 grid grid-cols-3 gap-2">
+                  <div>
+                    <span className="font-bold text-emerald-700">🟢 Normal BP:</span> Below 120/80
+                  </div>
+                  <div>
+                    <span className="font-bold text-orange-600">🟠 Borderline:</span> 120–139 / 80–89
+                  </div>
+                  <div>
+                    <span className="font-bold text-red-600">🔴 High BP:</span> 140/90 or above
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full py-3 px-4 rounded bg-teal-800 hover:bg-teal-900 text-white font-semibold text-sm transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                >
+                  {submitting
+                    ? 'Saving readings...'
+                    : isOnline
+                    ? '✓ Save Vitals & Get Health Status'
+                    : 'Save on This Device (No Internet)'}
+                </button>
+              </form>
             </div>
-
-            {/* Submit Button */}
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full py-2.5 px-4 rounded bg-teal-800 hover:bg-teal-900 text-white font-semibold text-sm transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-60"
-              >
-                {submitting ? (
-                  <>
-                    <span className="spinner-white"></span>
-                    <span>Saving patient screening...</span>
-                  </>
-                ) : isOnline ? (
-                  'Save Patient Screening'
-                ) : (
-                  'Save on This Device (Offline)'
-                )}
-              </button>
-            </div>
-
-          </form>
+          )}
         </div>
 
-        {/* Right Col: Collector History & Scanned Patients (5 Cols) */}
-        <div className="lg:col-span-5 bg-white p-5 rounded border border-slate-200 shadow-sm space-y-3 flex flex-col h-full">
+        {/* ── RIGHT: History Panel ─────────────────────────────────────────── */}
+        <div className="lg:col-span-5 bg-white p-5 rounded border border-slate-200 shadow-sm space-y-3 flex flex-col">
           <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-            <h3 className="text-sm font-bold text-slate-900">Scanned Patients</h3>
+            <h3 className="text-sm font-bold text-slate-900">Today's Screened Patients</h3>
             <button
               onClick={fetchHistory}
               disabled={!isOnline || loadingHistory}
@@ -467,37 +686,44 @@ const CollectorDashboard = () => {
             </button>
           </div>
 
-          {/* Search Box */}
-          <div>
-            <input
-              type="text"
-              value={historySearch}
-              onChange={(e) => setHistorySearch(e.target.value)}
-              placeholder="Search by name, phone or Aadhaar..."
-              className="w-full px-3 py-1.5 rounded bg-white border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
-            />
-          </div>
+          <input
+            type="text"
+            value={historySearch}
+            onChange={(e) => setHistorySearch(e.target.value)}
+            placeholder="Search by name or phone..."
+            className="w-full px-3 py-1.5 rounded bg-white border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+          />
 
-          {/* Scanned Patients List */}
           <div className="flex-1 overflow-y-auto space-y-2.5 max-h-[460px] pr-1">
             {filteredHistory.length === 0 ? (
               <div className="p-6 text-center text-slate-500 text-xs">
-                {loadingHistory ? 'Loading history...' : 'No patients scanned yet.'}
+                {loadingHistory ? 'Loading...' : 'No patients screened yet today.'}
               </div>
             ) : (
               filteredHistory.map((item) => (
-                <div key={item.id} className="p-3 rounded bg-slate-50 border border-slate-200 space-y-1.5">
+                <div
+                  key={item.id}
+                  className="p-3 rounded bg-slate-50 border border-slate-200 space-y-1.5 cursor-pointer hover:border-teal-300 hover:bg-teal-50 transition"
+                  onClick={() => {
+                    setSearchPhone(item.patient_phone);
+                    setSearchResult(item);
+                    setShowQuickReg(false);
+                    setStep(1);
+                  }}
+                >
                   <div className="flex items-start justify-between">
                     <div>
                       <h4 className="text-xs font-bold text-slate-900">{item.patient_name}</h4>
-                      <p className="text-[11px] text-slate-500">+91 {item.patient_phone} • {item.patient_aadhaar_masked}</p>
+                      <p className="text-[11px] text-slate-500">📞 +91 {item.patient_phone}</p>
                     </div>
-                    <span className="text-[10px] text-slate-500 font-mono">
-                      {new Date(item.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      {item.risk_level && <RiskBadge risk={item.risk_level} />}
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        {new Date(item.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Vitals Summary */}
                   <div className="grid grid-cols-3 gap-2 pt-1 border-t border-slate-200 text-[11px]">
                     <div className="text-slate-700">
                       <span className="text-[10px] text-slate-500 block">BP</span>
@@ -508,7 +734,7 @@ const CollectorDashboard = () => {
                       <strong>{item.heart_rate || '--'} BPM</strong>
                     </div>
                     <div className="text-slate-700">
-                      <span className="text-[10px] text-slate-500 block">SpO2</span>
+                      <span className="text-[10px] text-slate-500 block">SpO₂</span>
                       <strong>{item.spo2 || '--'}%</strong>
                     </div>
                   </div>
@@ -516,12 +742,11 @@ const CollectorDashboard = () => {
               ))
             )}
           </div>
-
         </div>
 
       </div>
 
-      {/* Bluetooth Pairing Modal */}
+      {/* ── Bluetooth Modal ─────────────────────────────────────────────────── */}
       <BluetoothModal
         isOpen={isBluetoothModalOpen}
         onClose={() => setIsBluetoothModalOpen(false)}

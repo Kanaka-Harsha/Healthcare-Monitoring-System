@@ -28,10 +28,13 @@ const AdminDashboard = () => {
 
   // User Form State (Create / Edit)
   const [userFullName, setUserFullName] = useState('');
+  const [userUsername, setUserUsername] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userPhone, setUserPhone] = useState('');
   const [userRole, setUserRole] = useState('doctor');
   const [userPassword, setUserPassword] = useState('');
+  const [userDistrict, setUserDistrict] = useState('');
+  const [userState, setUserState] = useState('Karnataka');
   const [userActionMsg, setUserActionMsg] = useState(null);
   const [userSubmitting, setUserSubmitting] = useState(false);
 
@@ -143,20 +146,26 @@ const AdminDashboard = () => {
   const handleOpenCreateUser = () => {
     setEditingUser(null);
     setUserFullName('');
+    setUserUsername('');
     setUserEmail('');
     setUserPhone('');
     setUserRole('doctor');
     setUserPassword('');
+    setUserDistrict('');
+    setUserState('Karnataka');
     setShowCreateUserModal(true);
   };
 
   const handleOpenEditUser = (user) => {
     setEditingUser(user);
     setUserFullName(user.full_name);
+    setUserUsername(user.username || '');
     setUserEmail(user.email || '');
     setUserPhone(user.phone);
     setUserRole(user.role);
     setUserPassword('');
+    setUserDistrict(user.jurisdiction_district || '');
+    setUserState(user.jurisdiction_state || 'Karnataka');
     setShowCreateUserModal(true);
   };
 
@@ -171,6 +180,11 @@ const AdminDashboard = () => {
       setUserSubmitting(false);
       return;
     }
+    if (!userUsername.trim() || userUsername.trim().length < 3) {
+      setUserActionMsg({ type: 'error', text: 'Username must be at least 3 characters.' });
+      setUserSubmitting(false);
+      return;
+    }
     if (cleanPhone.length < 10) {
       setUserActionMsg({ type: 'error', text: 'Please enter a valid 10-digit mobile number.' });
       setUserSubmitting(false);
@@ -179,12 +193,15 @@ const AdminDashboard = () => {
 
     try {
       if (editingUser) {
-        // Update user & allocate password if provided
+        // Update user
         const payload = {
+          username: userUsername.trim().toLowerCase(),
           full_name: userFullName.trim(),
           email: userEmail.trim() ? userEmail.trim().toLowerCase() : null,
           phone: cleanPhone,
           role: userRole,
+          jurisdiction_district: userDistrict.trim() || null,
+          jurisdiction_state: userState.trim() || null,
         };
         if (userPassword.trim()) {
           payload.password = userPassword.trim();
@@ -192,21 +209,24 @@ const AdminDashboard = () => {
         await api.put(`/admin/users/${editingUser.id}`, payload);
         setUserActionMsg({ type: 'success', text: `Account for ${userFullName} updated successfully.` });
       } else {
-        // Create new user & allocate credentials
-        if (!userPassword.trim() || userPassword.length < 6) {
-          setUserActionMsg({ type: 'error', text: 'Initial password must be at least 6 characters.' });
+        // Create new user
+        if (!userPassword.trim() || userPassword.length < 4) {
+          setUserActionMsg({ type: 'error', text: 'Initial password must be at least 4 characters.' });
           setUserSubmitting(false);
           return;
         }
         await api.post('/admin/users', {
+          username: userUsername.trim().toLowerCase(),
           full_name: userFullName.trim(),
           email: userEmail.trim() ? userEmail.trim().toLowerCase() : null,
           phone: cleanPhone,
           role: userRole,
           password: userPassword.trim(),
-          is_active: true
+          is_active: true,
+          jurisdiction_district: userDistrict.trim() || null,
+          jurisdiction_state: userState.trim() || null,
         });
-        setUserActionMsg({ type: 'success', text: `Staff account for ${userFullName} (${userRole}) created with allocated password.` });
+        setUserActionMsg({ type: 'success', text: `Account for ${userFullName} (${userRole}) created with username ${userUsername.trim().toLowerCase()}.` });
       }
 
       setShowCreateUserModal(false);
@@ -371,7 +391,8 @@ const AdminDashboard = () => {
     const matchesRole = userRoleFilter === 'all' || u.role === userRoleFilter;
     const matchesSearch = !userSearch || 
       u.full_name.toLowerCase().includes(userSearch.toLowerCase()) ||
-      u.phone.includes(userSearch) ||
+      (u.username && u.username.toLowerCase().includes(userSearch.toLowerCase())) ||
+      (u.phone && u.phone.includes(userSearch)) ||
       (u.email && u.email.toLowerCase().includes(userSearch.toLowerCase()));
     return matchesRole && matchesSearch;
   });
@@ -455,6 +476,19 @@ const AdminDashboard = () => {
       {/* TAB 1: System Analytics Overview */}
       {activeTab === 'overview' && analytics && (
         <div className="space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-gradient-to-r from-teal-900 to-slate-900 text-white shadow-sm gap-3">
+            <div>
+              <h3 className="text-sm font-bold">Public Health & Disease Surveillance Analytics Portal</h3>
+              <p className="text-xs text-teal-200 mt-0.5">Interactive Red / Orange / Green health mapping across all states and districts.</p>
+            </div>
+            <a
+              href="/analytics"
+              className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition shadow-sm flex items-center gap-1.5 self-start sm:self-auto"
+            >
+              <span>Launch Analytics Portal &rarr;</span>
+            </a>
+          </div>
+
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
               <span className="text-xs text-slate-500 font-semibold block">Total Screenings</span>
@@ -543,16 +577,18 @@ const AdminDashboard = () => {
               >
                 <option value="all">All Roles</option>
                 <option value="doctor">Doctors</option>
-                <option value="registrar">Registrars</option>
-                <option value="collector">Assistants</option>
+                <option value="camp_assistant">Camp Assistants</option>
+                <option value="volunteer">Volunteers</option>
+                <option value="higher_authority">Higher Authorities</option>
                 <option value="admin">Administrators</option>
+                <option value="patient">Patients</option>
               </select>
 
               <button
                 onClick={handleOpenCreateUser}
                 className="px-3.5 py-1.5 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5 touch-target"
               >
-                <span>+ Add Staff / Doctor</span>
+                <span>+ Add User / Staff</span>
               </button>
             </div>
           </div>
@@ -563,12 +599,12 @@ const AdminDashboard = () => {
               <table className="w-full text-left text-xs text-slate-700 min-w-[700px]">
                 <thead className="bg-slate-50 text-slate-700 uppercase font-semibold text-[10px] border-b border-slate-200">
                   <tr>
-                    <th className="p-3">Staff Name</th>
+                    <th className="p-3">Full Name</th>
+                    <th className="p-3">Username</th>
                     <th className="p-3">Mobile Phone</th>
-                    <th className="p-3">Email Address</th>
                     <th className="p-3">Role Assigned</th>
+                    <th className="p-3">Jurisdiction</th>
                     <th className="p-3">Status</th>
-                    <th className="p-3">Created</th>
                     <th className="p-3 text-right">Actions</th>
                   </tr>
                 </thead>
@@ -576,24 +612,29 @@ const AdminDashboard = () => {
                   {filteredUsers.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="p-8 text-center text-slate-500">
-                        No staff accounts matching current filters.
+                        No accounts matching current filters.
                       </td>
                     </tr>
                   ) : (
                     filteredUsers.map((u) => (
                       <tr key={u.id} className="hover:bg-slate-50/80 transition-colors">
                         <td className="p-3 font-bold text-slate-900">{u.full_name}</td>
+                        <td className="p-3 font-mono font-semibold text-teal-800">@{u.username || '--'}</td>
                         <td className="p-3 font-mono font-medium">+91 {u.phone}</td>
-                        <td className="p-3 text-slate-600">{u.email || '--'}</td>
                         <td className="p-3">
                           <span className={`px-2 py-0.5 rounded text-[11px] font-semibold border ${
                             u.role === 'doctor' ? 'bg-indigo-50 text-indigo-900 border-indigo-200' :
-                            u.role === 'registrar' ? 'bg-teal-50 text-teal-900 border-teal-200' :
-                            u.role === 'collector' ? 'bg-amber-50 text-amber-900 border-amber-200' :
-                            'bg-purple-50 text-purple-900 border-purple-200'
+                            u.role === 'camp_assistant' || u.role === 'collector' ? 'bg-blue-50 text-blue-900 border-blue-200' :
+                            u.role === 'volunteer' || u.role === 'registrar' ? 'bg-emerald-50 text-emerald-900 border-emerald-200' :
+                            u.role === 'higher_authority' ? 'bg-purple-50 text-purple-900 border-purple-200' :
+                            u.role === 'admin' ? 'bg-slate-900 text-white border-slate-900' :
+                            'bg-slate-100 text-slate-800 border-slate-200'
                           }`}>
-                            {u.role.toUpperCase()}
+                            {u.role.toUpperCase().replace('_', ' ')}
                           </span>
+                        </td>
+                        <td className="p-3 text-slate-600">
+                          {u.jurisdiction_district || u.jurisdiction_state ? `${u.jurisdiction_district || ''} ${u.jurisdiction_state || ''}` : '--'}
                         </td>
                         <td className="p-3">
                           {u.is_active ? (
@@ -602,12 +643,9 @@ const AdminDashboard = () => {
                             </span>
                           ) : (
                             <span className="text-rose-700 font-semibold flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span> Deactivated
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-600"></span> Disabled
                             </span>
                           )}
-                        </td>
-                        <td className="p-3 font-mono text-slate-500">
-                          {new Date(u.created_at).toLocaleDateString()}
                         </td>
                         <td className="p-3 text-right space-x-1.5 whitespace-nowrap">
                           <button
@@ -615,7 +653,7 @@ const AdminDashboard = () => {
                             className="px-2.5 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-800 text-[11px] font-semibold transition"
                             title="Edit details and allocate new password"
                           >
-                            Edit / Password
+                            Edit
                           </button>
                           <button
                             onClick={() => handleToggleUserStatus(u.id, u.is_active)}
@@ -946,16 +984,30 @@ const AdminDashboard = () => {
             </div>
 
             <form onSubmit={handleSaveUser} className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={userFullName}
-                  onChange={(e) => setUserFullName(e.target.value)}
-                  placeholder="e.g. Dr. Rajesh Sharma"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-teal-700"
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={userFullName}
+                    onChange={(e) => setUserFullName(e.target.value)}
+                    placeholder="e.g. Dr. Rajesh Sharma"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-700"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Username (Login ID) *</label>
+                  <input
+                    type="text"
+                    required
+                    value={userUsername}
+                    onChange={(e) => setUserUsername(e.target.value.toLowerCase())}
+                    placeholder="e.g. rajesh_doc"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-700"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -968,7 +1020,7 @@ const AdminDashboard = () => {
                     onChange={(e) => setUserPhone(e.target.value)}
                     placeholder="9876543210"
                     maxLength={10}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-teal-700"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-700"
                   />
                 </div>
 
@@ -979,7 +1031,7 @@ const AdminDashboard = () => {
                     value={userEmail}
                     onChange={(e) => setUserEmail(e.target.value)}
                     placeholder="doctor@hospital.org"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-teal-700"
+                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-700"
                   />
                 </div>
               </div>
@@ -989,26 +1041,53 @@ const AdminDashboard = () => {
                 <select
                   value={userRole}
                   onChange={(e) => setUserRole(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-teal-700"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-700"
                 >
                   <option value="doctor">Doctor (Consultations, Prescriptions & Notes)</option>
-                  <option value="registrar">Registrar (Patient Onboarding & Health History)</option>
-                  <option value="collector">Healthcamp Assistant (BLE Vitals Screening)</option>
-                  <option value="admin">Administrator (System Management & Audits)</option>
+                  <option value="camp_assistant">Camp Assistant (Health Checks & BLE Vitals)</option>
+                  <option value="volunteer">Volunteer (Village Citizen Registration Desk)</option>
+                  <option value="higher_authority">Higher Authority (Public Health Analytics Portal)</option>
+                  <option value="admin">App Administrator (Full Rights & Audits)</option>
+                  <option value="patient">Patient / Citizen</option>
                 </select>
               </div>
 
+              {userRole === 'higher_authority' && (
+                <div className="grid grid-cols-2 gap-3 p-3 bg-purple-50 rounded-xl border border-purple-200">
+                  <div>
+                    <label className="block text-xs font-semibold text-purple-900 mb-1">Assigned State</label>
+                    <input
+                      type="text"
+                      value={userState}
+                      onChange={(e) => setUserState(e.target.value)}
+                      placeholder="e.g. Karnataka"
+                      className="w-full text-xs px-2.5 py-1.5 rounded border border-purple-300 bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-purple-900 mb-1">Assigned District</label>
+                    <input
+                      type="text"
+                      value={userDistrict}
+                      onChange={(e) => setUserDistrict(e.target.value)}
+                      placeholder="e.g. Mysuru"
+                      className="w-full text-xs px-2.5 py-1.5 rounded border border-purple-300 bg-white"
+                    />
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  {editingUser ? 'Allocate New Password (Leave blank to keep unchanged)' : 'Allocate User Password *'}
+                  {editingUser ? 'Change Password (Leave blank to keep unchanged)' : 'Initial Account Password *'}
                 </label>
                 <input
                   type="password"
                   value={userPassword}
                   onChange={(e) => setUserPassword(e.target.value)}
-                  placeholder={editingUser ? 'Enter new password if changing...' : 'Min 6 characters'}
+                  placeholder={editingUser ? 'Enter new password if changing...' : 'Min 4 characters'}
                   required={!editingUser}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-teal-700"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-700"
                 />
               </div>
 

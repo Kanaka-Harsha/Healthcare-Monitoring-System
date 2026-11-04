@@ -2,108 +2,181 @@ import React, { useState } from 'react';
 import api, { extractErrorMessage } from '../../services/api';
 import { useSync } from '../../context/SyncContext';
 
-const CHRONIC_CONDITIONS = [
+const COMMON_STATES = [
+  'Karnataka',
+  'Maharashtra',
+  'Tamil Nadu',
+  'Telangana',
+  'Andhra Pradesh',
+  'Kerala',
+  'Uttar Pradesh',
+  'Madhya Pradesh',
+  'Rajasthan',
+  'Gujarat',
+  'Bihar',
+  'West Bengal',
+  'Odisha',
+  'Punjab',
+  'Haryana',
+  'Assam'
+];
+
+const COMMON_DISTRICTS_BY_STATE = {
+  'Karnataka': ['Mysuru', 'Bengaluru Urban', 'Bengaluru Rural', 'Mandya', 'Hassan', 'Belagavi', 'Tumakuru', 'Ballari', 'Shivamogga', 'Davanagere', 'Other'],
+  'Maharashtra': ['Pune', 'Mumbai Suburban', 'Nagpur', 'Nashik', 'Thane', 'Kolhapur', 'Solapur', 'Aurangabad', 'Other'],
+  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem', 'Tirunelveli', 'Other'],
+  'Telangana': ['Hyderabad', 'Rangareddy', 'Warangal', 'Nizamabad', 'Khammam', 'Karimnagar', 'Other'],
+  'Andhra Pradesh': ['Visakhapatnam', 'Vijayawada', 'Guntur', 'Kurnool', 'Nellore', 'Tirupati', 'Other']
+};
+
+const REPORT_TYPE_OPTIONS = [
+  'Blood Test Report',
+  'ECG / Heart Graph',
+  'X-Ray Scan',
+  'MRI / CT Scan',
+  'Ultrasound Scan',
+  'Doctor Prescription',
+  'Hospital Discharge Summary',
+  'Lab / Urine Report',
+  'Other Medical Document'
+];
+
+const PRIMARY_PROBLEMS = [
+  'Routine Preventive Checkup',
+  'High Blood Pressure / Dizziness',
+  'Diabetes / High Sugar Symptoms',
+  'Chest Pain / Heart Concern',
+  'Asthma / Breathing Trouble',
+  'Joint Pain / Arthritis',
+  'Eye / Vision Problem',
+  'Fever / Infection',
+  'Kidney / Urinary Problem',
+  'General Weakness / Fatigue',
+  'Skin Rash / Allergy',
+  'Other'
+];
+
+const KNOWN_CONDITIONS_OPTIONS = [
   'Hypertension (High Blood Pressure)',
-  'Type 2 Diabetes Mellitus',
-  'Type 1 Diabetes Mellitus',
-  'Asthma / Chronic Bronchitis',
-  'Coronary Artery Disease',
-  'Thyroid Disorder (Hypo/Hyper)',
-  'Chronic Kidney Disease',
-  'High Cholesterol / Dyslipidemia',
+  'Type 2 Diabetes',
+  'Heart Condition / CAD',
+  'Asthma / Bronchitis',
+  'Thyroid Disorder',
+  'Kidney Illness',
   'Arthritis / Joint Pain',
-  'None / No Known Chronic Illness'
-];
-
-const FAMILY_HISTORY_OPTIONS = [
-  'Father: Diabetes Mellitus',
-  'Father: Heart Disease / CAD',
-  'Father: Hypertension',
-  'Mother: Diabetes Mellitus',
-  'Mother: Hypertension',
-  'Mother: Thyroid Disorder',
-  'Siblings: Early Cardiovascular Disease',
-  'Family History: Stroke',
-  'Family History: Cancer',
-  'No Known Family Medical Issues'
-];
-
-const FAMILY_ROLE_OPTIONS = [
-  'Primary Breadwinner / Head of Household',
-  'Lives with Nuclear Family (Spouse & Children)',
-  'Lives with Joint / Extended Family (Active Caregiver Support)',
-  'Lives Independently / Self-Managed',
-  'Dependent on Family for Daily Medication & Medical Care'
-];
-
-const SURGERIES_OPTIONS = [
-  'Cardiac Surgery (Bypass / Angioplasty / Stent)',
-  'Abdominal Surgery (Appendectomy / Gallbladder / Hernia)',
-  'Orthopedic Surgery (Fracture Fixation / Joint Replacement)',
-  'Ophthalmic Surgery (Cataract / Eye Laser)',
-  'ENT / Minor Surgery',
-  'None / No Past Surgeries'
-];
-
-const ALLERGIES_OPTIONS = [
-  'Penicillin / Amoxicillin',
-  'Sulfa Drugs / Sulfonamides',
-  'Aspirin / NSAIDs (Ibuprofen / Diclofenac)',
-  'Food Allergies (Nuts / Dairy / Shellfish)',
-  'Latex / Adhesive Bandages',
-  'No Known Drug or Substance Allergies'
+  'None / No Known Long-term Illness'
 ];
 
 const UserRegistrationPage = () => {
-  const { isOnline, enqueuePatientRecord, triggerSync, pendingCount, pendingPatients } = useSync();
+  const { isOnline, enqueuePatientRecord } = useSync();
 
-  // Personal Details
+  // Citizen Identity
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [aadhaar, setAadhaar] = useState('');
-  const [age, setAge] = useState('');
+  const [patientPin, setPatientPin] = useState('');
+
+  // Demographics (Dropdowns)
   const [gender, setGender] = useState('Male');
+  const [age, setAge] = useState('');
+  const [ageGroup, setAgeGroup] = useState('Adult (19-45)');
   const [bloodGroup, setBloodGroup] = useState('O+');
-  const [address, setAddress] = useState('');
+
+  // Separated Address Columns
+  const [houseNumber, setHouseNumber] = useState('');
+  const [villageOrTown, setVillageOrTown] = useState('');
+  const [city, setCity] = useState('');
+  const [selectedState, setSelectedState] = useState('Karnataka');
+  const [selectedDistrict, setSelectedDistrict] = useState('Mysuru');
+  const [customDistrict, setCustomDistrict] = useState('');
+  const [pincode, setPincode] = useState('');
+
+  // Clinical Profiling
+  const [primaryProblem, setPrimaryProblem] = useState(PRIMARY_PROBLEMS[0]);
+  const [selectedConditions, setSelectedConditions] = useState([]);
+
+  // Emergency Contact
   const [emergencyName, setEmergencyName] = useState('');
   const [emergencyRelation, setEmergencyRelation] = useState('Spouse');
   const [emergencyPhone, setEmergencyPhone] = useState('');
 
-  // Medical History Questionnaire
-  const [selectedConditions, setSelectedConditions] = useState([]);
-  const [selectedFamilyHistory, setSelectedFamilyHistory] = useState([]);
-  const [familyRole, setFamilyRole] = useState(FAMILY_ROLE_OPTIONS[0]);
-  const [selectedSurgeries, setSelectedSurgeries] = useState([]);
-  const [selectedAllergies, setSelectedAllergies] = useState([]);
-  
-  // Lifestyle
-  const [smokingStatus, setSmokingStatus] = useState('Non-Smoker');
-  const [alcoholStatus, setAlcoholStatus] = useState('Non-Drinker');
-  const [physicalActivity, setPhysicalActivity] = useState('Moderate (3-4 times/week)');
-  const [dietaryPreference, setDietaryPreference] = useState('Vegetarian');
-  
-  // Clinical Notes
-  const [currentMedications, setCurrentMedications] = useState('');
-  const [clinicalNotes, setClinicalNotes] = useState('');
+  // Medical Reports Multi-Upload Queue
+  const [queuedFiles, setQueuedFiles] = useState([]); // [{ file, reportType, previewName }]
 
   // UI state
   const [submitting, setSubmitting] = useState(false);
   const [notification, setNotification] = useState(null);
   const [createdPatient, setCreatedPatient] = useState(null);
+  const [uploadedReportsList, setUploadedReportsList] = useState([]);
 
-  const toggleSelection = (item, list, setList) => {
-    if (item.startsWith('None') || item.startsWith('No Known')) {
-      setList([item]);
-      return;
-    }
-    const filtered = list.filter(i => !i.startsWith('None') && !i.startsWith('No Known'));
-    if (filtered.includes(item)) {
-      setList(filtered.filter(i => i !== item));
-    } else {
-      setList([...filtered, item]);
+  const handleAgeChange = (val) => {
+    setAge(val);
+    const num = parseInt(val);
+    if (!isNaN(num)) {
+      if (num <= 12) setAgeGroup('Infant / Child (0-12)');
+      else if (num <= 18) setAgeGroup('Youth (13-18)');
+      else if (num <= 45) setAgeGroup('Adult (19-45)');
+      else if (num <= 60) setAgeGroup('Middle-Aged (46-60)');
+      else setAgeGroup('Senior Citizen (60+)');
     }
   };
 
+  const toggleCondition = (item) => {
+    if (item.startsWith('None')) {
+      setSelectedConditions([item]);
+      return;
+    }
+    const filtered = selectedConditions.filter(c => !c.startsWith('None'));
+    if (filtered.includes(item)) {
+      setSelectedConditions(filtered.filter(c => c !== item));
+    } else {
+      setSelectedConditions([...filtered, item]);
+    }
+  };
+
+  // Handle Multi-file Selection
+  const handleFileSelection = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+
+    const patientSafeName = (fullName.trim() || 'Patient').replace(/[^a-zA-Z0-9]/g, '_');
+    const newQueueItems = files.map((file, idx) => {
+      const ext = file.name.split('.').pop() || 'pdf';
+      const defaultType = REPORT_TYPE_OPTIONS[0];
+      const typeSafe = defaultType.replace(/[^a-zA-Z0-9]/g, '_');
+      return {
+        id: `${Date.now()}-${idx}`,
+        file,
+        reportType: defaultType,
+        previewName: `${patientSafeName}_${typeSafe}_${idx + 1}.${ext}`
+      };
+    });
+
+    setQueuedFiles(prev => [...prev, ...newQueueItems]);
+  };
+
+  const updateQueuedFileType = (id, newType) => {
+    const patientSafeName = (fullName.trim() || 'Patient').replace(/[^a-zA-Z0-9]/g, '_');
+    const typeSafe = newType.replace(/[^a-zA-Z0-9]/g, '_');
+
+    setQueuedFiles(prev => prev.map(item => {
+      if (item.id === id) {
+        const ext = item.file.name.split('.').pop() || 'pdf';
+        return {
+          ...item,
+          reportType: newType,
+          previewName: `${patientSafeName}_${typeSafe}.${ext}`
+        };
+      }
+      return item;
+    }));
+  };
+
+  const removeQueuedFile = (id) => {
+    setQueuedFiles(prev => prev.filter(item => item.id !== id));
+  };
+
+  // Submit Patient Registration & Multi-File Reports
   const handleRegisterPatient = async (e) => {
     e.preventDefault();
     setNotification(null);
@@ -112,7 +185,7 @@ const UserRegistrationPage = () => {
     const cleanAadhaar = aadhaar.replace(/\D/g, '');
 
     if (!fullName.trim()) {
-      setNotification({ type: 'error', message: 'Patient full name is required.' });
+      setNotification({ type: 'error', message: 'Citizen full name is required.' });
       return;
     }
     if (cleanPhone.length < 10) {
@@ -120,37 +193,33 @@ const UserRegistrationPage = () => {
       return;
     }
     if (cleanAadhaar.length !== 12) {
-      setNotification({ type: 'error', message: 'Aadhaar number must be exactly 12 digits.' });
+      setNotification({ type: 'error', message: 'Aadhaar card number must be exactly 12 digits.' });
       return;
     }
+
+    const finalDistrict = selectedDistrict === 'Other' ? (customDistrict.trim() || 'Other') : selectedDistrict;
 
     const payload = {
       full_name: fullName.trim(),
       phone: cleanPhone,
       aadhaar_number: cleanAadhaar,
+      patient_pin: patientPin.trim() || cleanPhone.slice(-4),
       age: age ? parseInt(age) : null,
       gender,
-      address: address.trim() || null,
+      house_number: houseNumber.trim() || null,
+      village_or_town: villageOrTown.trim() || null,
+      city: city.trim() || null,
+      district: finalDistrict,
+      state: selectedState,
+      country: 'India',
+      pincode: pincode.trim() || null,
+      primary_health_issue: primaryProblem,
+      health_issues_list: selectedConditions.length > 0 ? selectedConditions : ['None Known'],
       emergency_contact: {
         name: emergencyName.trim() || null,
         relation: emergencyRelation,
         phone: emergencyPhone.replace(/\D/g, '').slice(-10) || null,
         blood_group: bloodGroup
-      },
-      medical_history: {
-        past_medical_issues: selectedConditions.length > 0 ? selectedConditions : ['None Reported'],
-        family_medical_history: selectedFamilyHistory.length > 0 ? selectedFamilyHistory : ['None Reported'],
-        family_role: familyRole,
-        surgeries_and_hospitalizations: selectedSurgeries.length > 0 ? selectedSurgeries : ['None Reported'],
-        known_allergies: selectedAllergies.length > 0 ? selectedAllergies : ['None Reported'],
-        lifestyle: {
-          smoking: smokingStatus,
-          alcohol: alcoholStatus,
-          physical_activity: physicalActivity,
-          diet: dietaryPreference
-        },
-        current_medications: currentMedications.trim() || 'None',
-        intake_notes: clinicalNotes.trim() || 'Intake questionnaire completed at registration desk.'
       }
     };
 
@@ -158,37 +227,38 @@ const UserRegistrationPage = () => {
 
     if (isOnline) {
       try {
+        // Step 1: Save Patient Record
         const res = await api.post('/collector/patient', payload);
-        setCreatedPatient(res.data);
+        const registered = res.data;
+        setCreatedPatient(registered);
+
+        // Step 2: Upload Medical Reports if any queued
+        let uploaded = [];
+        if (queuedFiles.length > 0) {
+          const formData = new FormData();
+          queuedFiles.forEach(item => {
+            formData.append('files', item.file);
+            formData.append('report_types', item.reportType);
+          });
+
+          const uploadRes = await api.post(`/reports/patient/${registered.id}/upload`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+          uploaded = uploadRes.data || [];
+          setUploadedReportsList(uploaded);
+        }
+
         setNotification({
           type: 'success',
-          message: `Patient ${fullName} has been successfully registered on the central server. The medical questionnaire has been saved.`
+          message: `Citizen ${fullName} is successfully registered. ${uploaded.length > 0 ? `${uploaded.length} medical report(s) saved.` : ''} Login PIN: ${payload.patient_pin}`
         });
         window.scrollTo({ top: 0, behavior: 'smooth' });
+
       } catch (err) {
-        if (!err.response || err.message === 'Network Error' || err.code === 'ECONNABORTED') {
-          // Network failure fallback -> store in IndexedDB
-          await enqueuePatientRecord(payload);
-          setCreatedPatient({
-            id: `OFFLINE-PAT-${cleanPhone.slice(-4)}`,
-            full_name: fullName.trim(),
-            phone: cleanPhone,
-            aadhaar_masked: `XXXX-XXXX-${cleanAadhaar.slice(-4)}`,
-            age: age ? parseInt(age) : null,
-            gender,
-            isOffline: true
-          });
-          setNotification({
-            type: 'warning',
-            message: `Connection lost: Patient ${fullName} has been safely saved in offline storage on this device. It will automatically upload when internet connects.`
-          });
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else {
-          setNotification({
-            type: 'error',
-            message: extractErrorMessage(err, 'Failed to register patient. Please check the information and try again.')
-          });
-        }
+        setNotification({
+          type: 'error',
+          message: extractErrorMessage(err, 'Failed to save registration. Please check information and try again.')
+        });
       } finally {
         setSubmitting(false);
       }
@@ -196,17 +266,17 @@ const UserRegistrationPage = () => {
       // Offline mode
       await enqueuePatientRecord(payload);
       setCreatedPatient({
-        id: `OFFLINE-PAT-${cleanPhone.slice(-4)}`,
+        id: `OFFLINE-${cleanPhone.slice(-4)}`,
         full_name: fullName.trim(),
         phone: cleanPhone,
         aadhaar_masked: `XXXX-XXXX-${cleanAadhaar.slice(-4)}`,
-        age: age ? parseInt(age) : null,
-        gender,
+        village_or_town: villageOrTown,
+        district: finalDistrict,
         isOffline: true
       });
       setNotification({
         type: 'warning',
-        message: `Offline Mode Active: Patient ${fullName} and their complete medical history questionnaire are safely saved on this device. It will automatically sync when internet connects.`
+        message: `Offline Notice: Citizen ${fullName} is saved safely on this device. It will upload automatically when internet connects.`
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
       setSubmitting(false);
@@ -217,553 +287,487 @@ const UserRegistrationPage = () => {
     setFullName('');
     setPhone('');
     setAadhaar('');
+    setPatientPin('');
     setAge('');
-    setGender('Male');
-    setBloodGroup('O+');
-    setAddress('');
-    setEmergencyName('');
-    setEmergencyRelation('Spouse');
-    setEmergencyPhone('');
+    setHouseNumber('');
+    setVillageOrTown('');
+    setCity('');
+    setPincode('');
+    setPrimaryProblem(PRIMARY_PROBLEMS[0]);
     setSelectedConditions([]);
-    setSelectedFamilyHistory([]);
-    setFamilyRole(FAMILY_ROLE_OPTIONS[0]);
-    setSelectedSurgeries([]);
-    setSelectedAllergies([]);
-    setSmokingStatus('Non-Smoker');
-    setAlcoholStatus('Non-Drinker');
-    setPhysicalActivity('Moderate (3-4 times/week)');
-    setDietaryPreference('Vegetarian');
-    setCurrentMedications('');
-    setClinicalNotes('');
+    setEmergencyName('');
+    setEmergencyPhone('');
+    setQueuedFiles([]);
     setCreatedPatient(null);
+    setUploadedReportsList([]);
     setNotification(null);
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
       
-      {/* Offline Status Alert Banner */}
-      {!isOnline && (
-        <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center justify-between text-amber-900 text-xs">
-          <div className="flex items-center gap-2 font-medium">
-            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-            <span>
-              <strong>Offline Registration Mode:</strong> No internet connection detected. All patient registrations and medical questionnaires will be saved locally on this phone and will automatically upload when network reconnects.
-            </span>
-          </div>
-          {pendingCount > 0 && (
-            <span className="font-semibold bg-amber-200/80 px-2 py-0.5 rounded text-amber-900 ml-2 whitespace-nowrap">
-              {pendingCount} Pending Sync
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 pb-4 border-b border-slate-200">
+      {/* Page Title */}
+      <div className="flex items-center justify-between pb-3 border-b border-slate-200">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-teal-100 text-teal-800">
-              SwasthGrama - Patient Registration
-            </span>
-            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${
-              isOnline ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
-            }`}>
-              {isOnline ? 'Online' : 'Offline Mode'}
-            </span>
-          </div>
-          <h1 className="text-xl font-bold text-slate-900 mt-1">
-            New Patient Registration & Health History
-          </h1>
-          <p className="text-xs text-slate-600">
-            Complete the form below to register a resident and record their detailed medical history.
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Citizen Health Registration</h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Village healthcamp intake desk. Fill details with simple dropdowns and upload previous test reports.
           </p>
         </div>
-
         {createdPatient && (
           <button
             onClick={resetForm}
-            className="px-3 py-1.5 text-xs font-semibold rounded bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition"
+            className="px-3.5 py-1.5 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold shadow-sm transition"
           >
-            Register Another Patient
+            + Register Next Citizen
           </button>
         )}
       </div>
 
-      {/* Notifications */}
+      {/* Notification Banner */}
       {notification && (
-        <div className={`mb-6 p-4 rounded text-sm font-medium border ${
-          notification.type === 'success'
-            ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+        <div className={`p-4 rounded-xl border text-xs font-medium ${
+          notification.type === 'success' 
+            ? 'bg-emerald-50 text-emerald-900 border-emerald-300' 
             : notification.type === 'warning'
-            ? 'bg-amber-50 border-amber-300 text-amber-900'
-            : 'bg-rose-50 border-rose-300 text-rose-900'
+            ? 'bg-amber-50 text-amber-900 border-amber-300'
+            : 'bg-rose-50 text-rose-900 border-rose-300'
         }`}>
           {notification.message}
         </div>
       )}
 
-      {/* Success / Offline Confirmation Card */}
+      {/* SUCCESS RECEIPT MODAL / CARD */}
       {createdPatient && (
-        <div className={`mb-6 p-5 rounded border ${
-          createdPatient.isOffline 
-            ? 'bg-amber-50/80 border-amber-200' 
-            : 'bg-emerald-50 border-emerald-200'
-        }`}>
-          <div className="flex items-center justify-between border-b border-slate-200 pb-3 mb-3">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">
-                {createdPatient.isOffline ? 'Patient Record Saved Locally (Offline)' : 'Patient Record Created Successfully'}
-              </h2>
-              <p className="text-xs text-slate-600">Patient Reference: {createdPatient.id}</p>
-            </div>
-            <span className={`text-xs font-semibold px-2.5 py-1 rounded ${
-              createdPatient.isOffline 
-                ? 'bg-amber-200 text-amber-900 border border-amber-300' 
-                : 'bg-emerald-200 text-emerald-900'
-            }`}>
-              {createdPatient.isOffline ? 'Saved Locally (Will Sync)' : 'Active Server Record'}
+        <div className="bg-white p-6 rounded-2xl border border-emerald-200 shadow-sm space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-base">
+              ✓
             </span>
+            <div>
+              <h3 className="text-base font-bold text-slate-900">Registration Complete</h3>
+              <p className="text-xs text-slate-500">Citizen is enrolled and can now sign in using their phone number.</p>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div className="p-2.5 rounded bg-white border border-slate-200">
-              <span className="text-slate-500 block">Full Name</span>
-              <span className="font-semibold text-slate-900 text-sm">{createdPatient.full_name}</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 p-4 rounded-xl text-xs">
+            <div>
+              <span className="text-slate-500 block">Name</span>
+              <span className="font-bold text-slate-900">{createdPatient.full_name}</span>
             </div>
-            <div className="p-2.5 rounded bg-white border border-slate-200">
-              <span className="text-slate-500 block">Mobile Number</span>
-              <span className="font-semibold text-slate-900 text-sm">+91 {createdPatient.phone}</span>
+            <div>
+              <span className="text-slate-500 block">Login Phone</span>
+              <span className="font-bold text-slate-900">+91 {createdPatient.phone}</span>
             </div>
-            <div className="p-2.5 rounded bg-white border border-slate-200">
-              <span className="text-slate-500 block">Aadhaar (Masked)</span>
-              <span className="font-semibold text-slate-900 text-sm font-mono">{createdPatient.aadhaar_masked}</span>
+            <div>
+              <span className="text-slate-500 block">Location</span>
+              <span className="font-semibold text-slate-800">{createdPatient.village_or_town || 'Village'}, {createdPatient.district}</span>
             </div>
-            <div className="p-2.5 rounded bg-white border border-slate-200">
-              <span className="text-slate-500 block">Age / Gender</span>
-              <span className="font-semibold text-slate-900 text-sm">{createdPatient.age || 'N/A'} yrs / {createdPatient.gender || 'N/A'}</span>
+            <div>
+              <span className="text-slate-500 block">Login PIN</span>
+              <span className="font-bold text-teal-700">{patientPin || createdPatient.phone.slice(-4)}</span>
             </div>
+          </div>
+
+          {uploadedReportsList.length > 0 && (
+            <div className="space-y-1.5 pt-2">
+              <span className="text-xs font-bold text-slate-700 block">Saved Medical Reports:</span>
+              <div className="space-y-1">
+                {uploadedReportsList.map((r) => (
+                  <div key={r.id} className="flex items-center justify-between text-xs bg-slate-50 px-3 py-1.5 rounded border border-slate-200">
+                    <span className="font-medium text-slate-800">{r.report_type} ({r.stored_filename})</span>
+                    <a
+                      href={`/api/v1/reports/download/${r.id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-teal-700 hover:underline font-semibold"
+                    >
+                      Download
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="pt-2">
+            <button
+              onClick={resetForm}
+              className="px-4 py-2 rounded-lg bg-teal-800 text-white font-semibold text-xs hover:bg-teal-900 transition"
+            >
+              Register Another Citizen
+            </button>
           </div>
         </div>
       )}
 
-      {/* Main Form */}
-      <form onSubmit={handleRegisterPatient} className="space-y-6">
-        
-        {/* SECTION 1: Personal Details */}
-        <div className="bg-white p-5 sm:p-6 rounded border border-slate-200 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">
-            Section 1: Personal & Identification Details
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Full Name *
-              </label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="Enter patient full name"
-                required
-                className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-teal-700 focus:ring-1 focus:ring-teal-700"
-              />
+      {/* REGISTRATION FORM */}
+      {!createdPatient && (
+        <form onSubmit={handleRegisterPatient} className="space-y-6">
+          
+          {/* SECTION 1: Citizen Identity */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5">
+              <span className="w-5 h-5 rounded-full bg-teal-100 text-teal-800 text-xs font-bold flex items-center justify-center">1</span>
+              <h2 className="text-sm font-bold text-slate-900">Citizen Identity & Login Setup</h2>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Mobile Number *
-              </label>
-              <input
-                type="tel"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="10-digit mobile number"
-                required
-                className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-teal-700 focus:ring-1 focus:ring-teal-700"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Aadhaar Number (12 Digits) *
-              </label>
-              <input
-                type="text"
-                value={aadhaar}
-                onChange={(e) => setAadhaar(e.target.value)}
-                placeholder="12-digit Aadhaar number"
-                maxLength={12}
-                required
-                className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 font-mono text-sm focus:outline-none focus:border-teal-700 focus:ring-1 focus:ring-teal-700"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Age (in years)
-              </label>
-              <input
-                type="number"
-                value={age}
-                onChange={(e) => setAge(e.target.value)}
-                placeholder="e.g. 45"
-                min="1"
-                max="125"
-                className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-teal-700 focus:ring-1 focus:ring-teal-700"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Gender
-              </label>
-              <select
-                value={gender}
-                onChange={(e) => setGender(e.target.value)}
-                className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-teal-700 focus:ring-1 focus:ring-teal-700"
-              >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Blood Group
-              </label>
-              <select
-                value={bloodGroup}
-                onChange={(e) => setBloodGroup(e.target.value)}
-                className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-teal-700 focus:ring-1 focus:ring-teal-700"
-              >
-                <option value="A+">A+</option>
-                <option value="A-">A-</option>
-                <option value="B+">B+</option>
-                <option value="B-">B-</option>
-                <option value="AB+">AB+</option>
-                <option value="AB-">AB-</option>
-                <option value="O+">O+</option>
-                <option value="O-">O-</option>
-              </select>
-            </div>
-
-            <div className="sm:col-span-2 lg:col-span-3">
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Village / Residential Address
-              </label>
-              <input
-                type="text"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="House / Street / Village, District"
-                className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-teal-700 focus:ring-1 focus:ring-teal-700"
-              />
-            </div>
-          </div>
-
-          {/* Emergency Contact */}
-          <div className="mt-5 pt-4 border-t border-slate-100">
-            <h3 className="text-xs font-bold uppercase text-slate-600 mb-3">
-              Emergency Contact & Family Member
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs text-slate-600 mb-1">Contact Person Name</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Full Name *</label>
                 <input
                   type="text"
-                  value={emergencyName}
-                  onChange={(e) => setEmergencyName(e.target.value)}
-                  placeholder="Family contact name"
-                  className="w-full px-3 py-1.5 rounded bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-700"
+                  required
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="e.g. Ramesh Kumar"
+                  className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium"
                 />
               </div>
+
               <div>
-                <label className="block text-xs text-slate-600 mb-1">Relationship</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Mobile Phone Number (Login Username) *</label>
+                <div className="flex">
+                  <span className="inline-flex items-center px-3 text-xs bg-slate-100 border border-r-0 border-slate-300 rounded-l-lg text-slate-600 font-semibold">+91</span>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+                    placeholder="9876543210"
+                    className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Aadhaar Card Number *</label>
+                <input
+                  type="text"
+                  maxLength={12}
+                  required
+                  value={aadhaar}
+                  onChange={(e) => setAadhaar(e.target.value.replace(/\D/g, ''))}
+                  placeholder="12-digit Aadhaar Number"
+                  className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium tracking-wider"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Set Citizen Portal PIN (Optional)</label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={patientPin}
+                  onChange={(e) => setPatientPin(e.target.value)}
+                  placeholder={`Default: last 4 digits (${phone.slice(-4) || 'XXXX'})`}
+                  className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium"
+                />
+                <span className="text-[10px] text-slate-500 mt-1 block">Patient uses this PIN to log in and view test reports.</span>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 2: Demographics (Dropdowns) */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5">
+              <span className="w-5 h-5 rounded-full bg-teal-100 text-teal-800 text-xs font-bold flex items-center justify-center">2</span>
+              <h2 className="text-sm font-bold text-slate-900">Demographics & Blood Group</h2>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Gender *</label>
                 <select
-                  value={emergencyRelation}
-                  onChange={(e) => setEmergencyRelation(e.target.value)}
-                  className="w-full px-3 py-1.5 rounded bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-700"
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-semibold text-slate-800"
                 >
-                  <option value="Spouse">Spouse</option>
-                  <option value="Parent">Parent (Father / Mother)</option>
-                  <option value="Child">Child (Son / Daughter)</option>
-                  <option value="Sibling">Sibling (Brother / Sister)</option>
-                  <option value="Guardian">Guardian / Relative</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
                 </select>
               </div>
+
               <div>
-                <label className="block text-xs text-slate-600 mb-1">Emergency Mobile Number</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Age in Years</label>
                 <input
-                  type="tel"
-                  value={emergencyPhone}
-                  onChange={(e) => setEmergencyPhone(e.target.value)}
-                  placeholder="10-digit mobile"
-                  className="w-full px-3 py-1.5 rounded bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-700"
+                  type="number"
+                  min="0"
+                  max="125"
+                  value={age}
+                  onChange={(e) => handleAgeChange(e.target.value)}
+                  placeholder="e.g. 45"
+                  className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Age Group</label>
+                <select
+                  value={ageGroup}
+                  onChange={(e) => setAgeGroup(e.target.value)}
+                  className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium text-slate-800"
+                >
+                  <option value="Infant / Child (0-12)">Child (0-12)</option>
+                  <option value="Youth (13-18)">Youth (13-18)</option>
+                  <option value="Adult (19-45)">Adult (19-45)</option>
+                  <option value="Middle-Aged (46-60)">Middle-Aged (46-60)</option>
+                  <option value="Senior Citizen (60+)">Senior (60+)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Blood Group</label>
+                <select
+                  value={bloodGroup}
+                  onChange={(e) => setBloodGroup(e.target.value)}
+                  className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-semibold text-slate-800"
+                >
+                  <option value="O+">O Positive (O+)</option>
+                  <option value="A+">A Positive (A+)</option>
+                  <option value="B+">B Positive (B+)</option>
+                  <option value="AB+">AB Positive (AB+)</option>
+                  <option value="O-">O Negative (O-)</option>
+                  <option value="A-">A Negative (A-)</option>
+                  <option value="B-">B Negative (B-)</option>
+                  <option value="AB-">AB Negative (AB-)</option>
+                  <option value="Unknown">Don't Know</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 3: Structured Address Columns */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5">
+              <span className="w-5 h-5 rounded-full bg-teal-100 text-teal-800 text-xs font-bold flex items-center justify-center">3</span>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">Address Details (Separated Columns for Analytics)</h2>
+                <span className="text-[11px] text-slate-500">Helps authorities view village-wise and district-wise health metrics.</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">House / Door / Flat No.</label>
+                <input
+                  type="text"
+                  value={houseNumber}
+                  onChange={(e) => setHouseNumber(e.target.value)}
+                  placeholder="e.g. 4-12/B or Near Temple"
+                  className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Village / Town / Ward *</label>
+                <input
+                  type="text"
+                  required
+                  value={villageOrTown}
+                  onChange={(e) => setVillageOrTown(e.target.value)}
+                  placeholder="e.g. Bilikere"
+                  className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">City / Taluka / Block</label>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="e.g. Hunsur"
+                  className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">State *</label>
+                <select
+                  value={selectedState}
+                  onChange={(e) => {
+                    setSelectedState(e.target.value);
+                    const distList = COMMON_DISTRICTS_BY_STATE[e.target.value];
+                    if (distList && distList.length > 0) setSelectedDistrict(distList[0]);
+                  }}
+                  className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-semibold text-slate-800"
+                >
+                  {COMMON_STATES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">District *</label>
+                <select
+                  value={selectedDistrict}
+                  onChange={(e) => setSelectedDistrict(e.target.value)}
+                  className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-semibold text-slate-800"
+                >
+                  {(COMMON_DISTRICTS_BY_STATE[selectedState] || ['Mysuru', 'Bengaluru Urban', 'Other']).map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+                {selectedDistrict === 'Other' && (
+                  <input
+                    type="text"
+                    required
+                    value={customDistrict}
+                    onChange={(e) => setCustomDistrict(e.target.value)}
+                    placeholder="Enter district name"
+                    className="w-full mt-1.5 text-xs px-3 py-1.5 bg-slate-50 border border-slate-300 rounded focus:outline-none"
+                  />
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">PIN Code (6 Digits)</label>
+                <input
+                  type="text"
+                  maxLength={6}
+                  value={pincode}
+                  onChange={(e) => setPincode(e.target.value.replace(/\D/g, ''))}
+                  placeholder="571103"
+                  className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium"
                 />
               </div>
             </div>
           </div>
-        </div>
 
-        {/* SECTION 2: Medical History Questionnaire */}
-        <div className="bg-white p-5 sm:p-6 rounded border border-slate-200 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">
-            Section 2: Medical History Questionnaire
-          </h2>
+          {/* SECTION 4: Health Categorization for Analytics */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-2.5">
+              <span className="w-5 h-5 rounded-full bg-teal-100 text-teal-800 text-xs font-bold flex items-center justify-center">4</span>
+              <h2 className="text-sm font-bold text-slate-900">Health Complaints & Conditions</h2>
+            </div>
 
-          <div className="space-y-5">
-            
-            {/* 2.1 Past Conditions */}
-            <div>
-              <label className="block text-xs font-bold text-slate-800 mb-2">
-                A. Past Medical Issues & Chronic Illnesses (Click to select options)
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {CHRONIC_CONDITIONS.map((cond) => {
-                  const isSelected = selectedConditions.includes(cond);
-                  return (
-                    <button
-                      key={cond}
-                      type="button"
-                      onClick={() => toggleSelection(cond, selectedConditions, setSelectedConditions)}
-                      className={`px-3 py-2 rounded text-left text-xs font-medium transition border flex items-center justify-between ${
-                        isSelected
-                          ? 'bg-teal-50 border-teal-600 text-teal-900 font-semibold'
-                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      <span>{cond}</span>
-                      {isSelected && <span className="text-teal-700 font-bold ml-1">[Selected]</span>}
-                    </button>
-                  );
-                })}
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Main Health Complaint / Reason for Checkup *</label>
+                <select
+                  value={primaryProblem}
+                  onChange={(e) => setPrimaryProblem(e.target.value)}
+                  className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-semibold text-slate-800"
+                >
+                  {PRIMARY_PROBLEMS.map((prob) => (
+                    <option key={prob} value={prob}>{prob}</option>
+                  ))}
+                </select>
               </div>
-            </div>
 
-            {/* 2.2 Family Medical History */}
-            <div>
-              <label className="block text-xs font-bold text-slate-800 mb-2">
-                B. Family Medical History (Hereditary Health Conditions)
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {FAMILY_HISTORY_OPTIONS.map((hist) => {
-                  const isSelected = selectedFamilyHistory.includes(hist);
-                  return (
-                    <button
-                      key={hist}
-                      type="button"
-                      onClick={() => toggleSelection(hist, selectedFamilyHistory, setSelectedFamilyHistory)}
-                      className={`px-3 py-2 rounded text-left text-xs font-medium transition border flex items-center justify-between ${
-                        isSelected
-                          ? 'bg-teal-50 border-teal-600 text-teal-900 font-semibold'
-                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      <span>{hist}</span>
-                      {isSelected && <span className="text-teal-700 font-bold ml-1">[Selected]</span>}
-                    </button>
-                  );
-                })}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Previous Long-term Health Issues (Click to select)</label>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {KNOWN_CONDITIONS_OPTIONS.map((c) => {
+                    const isSelected = selectedConditions.includes(c);
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        onClick={() => toggleCondition(c)}
+                        className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition ${
+                          isSelected
+                            ? 'bg-teal-700 text-white border-teal-800 shadow-sm'
+                            : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'
+                        }`}
+                      >
+                        {c}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-
-            {/* 2.3 Role of Family */}
-            <div>
-              <label className="block text-xs font-bold text-slate-800 mb-1">
-                C. Role of Family & Living Support
-              </label>
-              <select
-                value={familyRole}
-                onChange={(e) => setFamilyRole(e.target.value)}
-                className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-teal-700 focus:ring-1 focus:ring-teal-700"
-              >
-                {FAMILY_ROLE_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* 2.4 Past Surgeries */}
-            <div>
-              <label className="block text-xs font-bold text-slate-800 mb-2">
-                D. Past Surgeries & Major Medical Treatments
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {SURGERIES_OPTIONS.map((surg) => {
-                  const isSelected = selectedSurgeries.includes(surg);
-                  return (
-                    <button
-                      key={surg}
-                      type="button"
-                      onClick={() => toggleSelection(surg, selectedSurgeries, setSelectedSurgeries)}
-                      className={`px-3 py-2 rounded text-left text-xs font-medium transition border flex items-center justify-between ${
-                        isSelected
-                          ? 'bg-teal-50 border-teal-600 text-teal-900 font-semibold'
-                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      <span>{surg}</span>
-                      {isSelected && <span className="text-teal-700 font-bold ml-1">[Selected]</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* 2.5 Allergies */}
-            <div>
-              <label className="block text-xs font-bold text-slate-800 mb-2">
-                E. Known Drug, Medicine & Food Allergies
-              </label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                {ALLERGIES_OPTIONS.map((allg) => {
-                  const isSelected = selectedAllergies.includes(allg);
-                  return (
-                    <button
-                      key={allg}
-                      type="button"
-                      onClick={() => toggleSelection(allg, selectedAllergies, setSelectedAllergies)}
-                      className={`px-3 py-2 rounded text-left text-xs font-medium transition border flex items-center justify-between ${
-                        isSelected
-                          ? 'bg-teal-50 border-teal-600 text-teal-900 font-semibold'
-                          : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      <span>{allg}</span>
-                      {isSelected && <span className="text-teal-700 font-bold ml-1">[Selected]</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-        {/* SECTION 3: Lifestyle & Current Medications */}
-        <div className="bg-white p-5 sm:p-6 rounded border border-slate-200 shadow-sm">
-          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide mb-4 pb-2 border-b border-slate-100">
-            Section 3: Lifestyle Habits & Current Medications
-          </h2>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Tobacco / Smoking</label>
-              <select
-                value={smokingStatus}
-                onChange={(e) => setSmokingStatus(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-700"
-              >
-                <option value="Non-Smoker">Non-Smoker</option>
-                <option value="Former Smoker">Former Smoker (Quit)</option>
-                <option value="Occasional / Social">Occasional / Social</option>
-                <option value="Daily Smoker (1-10/day)">Daily Smoker (1-10/day)</option>
-                <option value="Heavy Smoker (>10/day)">Heavy Smoker (&gt;10/day)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Alcohol Consumption</label>
-              <select
-                value={alcoholStatus}
-                onChange={(e) => setAlcoholStatus(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-700"
-              >
-                <option value="Non-Drinker">Non-Drinker</option>
-                <option value="Occasional / Social">Occasional / Social</option>
-                <option value="Moderate (1-2 drinks/wk)">Moderate (1-2 drinks/wk)</option>
-                <option value="Regular / Daily">Regular / Daily</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Physical Activity</label>
-              <select
-                value={physicalActivity}
-                onChange={(e) => setPhysicalActivity(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-700"
-              >
-                <option value="Sedentary (No regular exercise)">Sedentary</option>
-                <option value="Light (Walking 1-2x/wk)">Light Walking</option>
-                <option value="Moderate (3-4 times/week)">Moderate (3-4x/week)</option>
-                <option value="Active / Athletic">Active / Athletic</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Dietary Pattern</label>
-              <select
-                value={dietaryPreference}
-                onChange={(e) => setDietaryPreference(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-700"
-              >
-                <option value="Vegetarian">Vegetarian</option>
-                <option value="Non-Vegetarian">Non-Vegetarian</option>
-                <option value="Eggetarian">Eggetarian</option>
-                <option value="Diabetic / Low-Salt Diet">Diabetic / Low-Salt Diet</option>
-              </select>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Current Daily Medications (Name & Dosage)
-              </label>
-              <textarea
-                value={currentMedications}
-                onChange={(e) => setCurrentMedications(e.target.value)}
-                rows={3}
-                placeholder="e.g. Metformin 500mg, Telmisartan 40mg..."
-                className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-700"
+          {/* SECTION 5: Multi-File Medical Reports Upload */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-teal-100 text-teal-800 text-xs font-bold flex items-center justify-center">5</span>
+                <div>
+                  <h2 className="text-sm font-bold text-slate-900">Upload Additional Medical Reports</h2>
+                  <span className="text-[11px] text-slate-500">
+                    Each file is automatically named after the patient name and report type.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* File Input */}
+            <div className="border-2 border-dashed border-slate-300 rounded-xl p-5 text-center bg-slate-50 hover:bg-slate-100/60 transition cursor-pointer relative">
+              <input
+                type="file"
+                multiple
+                accept=".pdf,image/png,image/jpeg,image/jpg"
+                onChange={handleFileSelection}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
+              <div className="space-y-1">
+                <span className="text-xs font-bold text-teal-800 block">Click or Drag & Drop Multiple Medical Reports</span>
+                <span className="text-[11px] text-slate-500 block">Supports PDFs, Blood Test scans, ECG graphs, X-Ray images</span>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Registration / Intake Notes
-              </label>
-              <textarea
-                value={clinicalNotes}
-                onChange={(e) => setClinicalNotes(e.target.value)}
-                rows={3}
-                placeholder="Any special remarks or chief complaints..."
-                className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-700"
-              />
-            </div>
-          </div>
-        </div>
+            {/* Queued Files List */}
+            {queuedFiles.length > 0 && (
+              <div className="space-y-2 pt-1">
+                <span className="text-xs font-bold text-slate-700 block">
+                  Files Queued to Upload ({queuedFiles.length})
+                </span>
+                <div className="space-y-2">
+                  {queuedFiles.map((item) => (
+                    <div key={item.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                      <div className="min-w-0">
+                        <span className="font-bold text-slate-800 truncate block">{item.file.name}</span>
+                        <span className="text-[11px] text-teal-700 font-medium">
+                          Saved as: {item.previewName}
+                        </span>
+                      </div>
 
-        {/* Submit Button & Responsive State */}
-        <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-2">
-          <button
-            type="button"
-            onClick={resetForm}
-            className="w-full sm:w-auto px-5 py-2.5 rounded bg-white border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition"
-          >
-            Clear Form
-          </button>
-
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full sm:w-auto px-6 py-2.5 rounded bg-teal-800 hover:bg-teal-900 text-white font-semibold text-sm transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-60"
-          >
-            {submitting ? (
-              <>
-                <span className="spinner-white"></span>
-                <span>Saving Patient Record...</span>
-              </>
-            ) : (
-              'Submit Patient Registration & Health History'
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <select
+                          value={item.reportType}
+                          onChange={(e) => updateQueuedFileType(item.id, e.target.value)}
+                          className="text-xs px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg font-semibold text-slate-800 focus:outline-none"
+                        >
+                          {REPORT_TYPE_OPTIONS.map((opt) => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => removeQueuedFile(item.id)}
+                          className="px-2 py-1 text-xs text-rose-600 hover:text-rose-800 font-semibold"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
-          </button>
-        </div>
+          </div>
 
-      </form>
+          {/* SUBMIT BUTTON */}
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-3.5 rounded-xl bg-teal-800 hover:bg-teal-900 text-white font-bold text-sm shadow-md transition disabled:opacity-50"
+            >
+              {submitting ? 'Saving Citizen Registration & Uploading Reports...' : 'Complete Registration & Save Reports'}
+            </button>
+          </div>
+
+        </form>
+      )}
+
     </div>
   );
 };

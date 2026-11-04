@@ -18,10 +18,13 @@ export const AuthProvider = ({ children }) => {
   const setAuthSession = (data) => {
     const userData = {
       id: data.user_id,
+      username: data.username,
       full_name: data.full_name,
       email: data.email || null,
       phone: data.phone,
       role: data.role,
+      district: data.jurisdiction_district || null,
+      state: data.jurisdiction_state || null,
     };
     setToken(data.access_token);
     setUser(userData);
@@ -29,18 +32,39 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(userData));
   };
 
-  const loginStaff = async (username_or_phone, password) => {
+  const login = async (username, password) => {
     setLoading(true);
     try {
       const response = await api.post('/auth/login', {
-        username_or_phone,
+        username: username.trim(),
         password,
       });
       const data = response.data;
       setAuthSession(data);
       return { success: true, role: data.role };
     } catch (error) {
-      const msg = extractErrorMessage(error, 'Login failed. Please check your username/phone and password.');
+      const msg = extractErrorMessage(error, 'Sign in failed. Please check your username and password.');
+      return { success: false, error: msg };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loginPatient = async (phone, password) => {
+    setLoading(true);
+    try {
+      const response = await api.post('/auth/login/patient', {
+        phone: phone.trim(),
+        password,
+      });
+      const data = response.data;
+      setAuthSession(data);
+      return { success: true, role: 'patient' };
+    } catch (error) {
+      const msg = extractErrorMessage(
+        error,
+        'Sign in failed. If you have not visited a village health camp yet, please visit our camp to get registered.'
+      );
       return { success: false, error: msg };
     } finally {
       setLoading(false);
@@ -55,40 +79,7 @@ export const AuthProvider = ({ children }) => {
       setAuthSession(data);
       return { success: true, role: data.role };
     } catch (error) {
-      const msg = extractErrorMessage(error, 'Staff registration failed. Please check the entered information.');
-      return { success: false, error: msg };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const signupPatient = async (patientData) => {
-    setLoading(true);
-    try {
-      const response = await api.post('/auth/signup/patient', patientData);
-      const data = response.data;
-      setAuthSession(data);
-      return { success: true, role: data.role };
-    } catch (error) {
-      const msg = extractErrorMessage(error, 'Patient registration failed. Please check details.');
-      return { success: false, error: msg };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loginPatientWithOTP = async (phone, otp) => {
-    setLoading(true);
-    try {
-      const response = await api.post('/auth/patient/verify-otp', {
-        phone,
-        otp,
-      });
-      const data = response.data;
-      setAuthSession(data);
-      return { success: true, role: 'patient' };
-    } catch (error) {
-      const msg = extractErrorMessage(error, 'Invalid or expired OTP. Please try again.');
+      const msg = extractErrorMessage(error, 'Account creation failed. Please check your information.');
       return { success: false, error: msg };
     } finally {
       setLoading(false);
@@ -100,23 +91,30 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = '/login';
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      token, 
-      loading, 
-      loginStaff, 
-      signupStaff,
-      signupPatient,
-      loginPatientWithOTP, 
-      logout 
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        loading,
+        login,
+        loginPatient,
+        signupStaff,
+        logout,
+        isAuthenticated: !!token,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};

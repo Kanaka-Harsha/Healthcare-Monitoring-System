@@ -11,14 +11,16 @@ import CollectorDashboard from './pages/collector/CollectorDashboard';
 import DoctorDashboard from './pages/doctor/DoctorDashboard';
 import PatientDashboard from './pages/patient/PatientDashboard';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import HigherAuthorityAnalyticsPage from './pages/analytics/HigherAuthorityAnalyticsPage';
 
 const HomeRedirect = () => {
   const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
   if (user.role === 'admin') return <Navigate to="/admin" replace />;
+  if (user.role === 'higher_authority') return <Navigate to="/analytics" replace />;
   if (user.role === 'doctor') return <Navigate to="/doctor" replace />;
-  if (user.role === 'collector') return <Navigate to="/collector" replace />;
-  if (user.role === 'registrar') return <Navigate to="/registration" replace />;
+  if (user.role === 'camp_assistant' || user.role === 'collector') return <Navigate to="/collector" replace />;
+  if (user.role === 'volunteer' || user.role === 'registrar') return <Navigate to="/registration" replace />;
   if (user.role === 'patient') return <Navigate to="/patient" replace />;
   return <Navigate to="/login" replace />;
 };
@@ -35,27 +37,27 @@ function App() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/signup" element={<SignupPage />} />
                 
-                {/* 1. User Registration (New User) Role Route */}
+                {/* 1. Citizen Registration Desk (Village Volunteers & Camp Assistants) */}
                 <Route
                   path="/registration"
                   element={
-                    <ProtectedRoute allowedRoles={['registrar', 'collector', 'doctor', 'admin']}>
+                    <ProtectedRoute allowedRoles={['volunteer', 'camp_assistant', 'doctor', 'admin', 'registrar', 'collector']}>
                       <UserRegistrationPage />
                     </ProtectedRoute>
                   }
                 />
 
-                {/* 2. Healthcamps / Assistant Scan Role Route */}
+                {/* 2. Healthcamp Vitals Check Desk (Camp Assistants & Doctors - Strictly NO Analytics) */}
                 <Route
                   path="/collector"
                   element={
-                    <ProtectedRoute allowedRoles={['collector', 'registrar', 'doctor', 'admin']}>
+                    <ProtectedRoute allowedRoles={['camp_assistant', 'doctor', 'admin', 'collector']}>
                       <CollectorDashboard />
                     </ProtectedRoute>
                   }
                 />
 
-                {/* Doctor Role Route */}
+                {/* 3. Doctor Consultation Portal */}
                 <Route
                   path="/doctor"
                   element={
@@ -65,7 +67,7 @@ function App() {
                   }
                 />
 
-                {/* Patient Role Route */}
+                {/* 4. Patient Health Numbers View */}
                 <Route
                   path="/patient"
                   element={
@@ -75,7 +77,17 @@ function App() {
                   }
                 />
 
-                {/* Admin Role Route */}
+                {/* 5. Higher Authority Analytics Portal (Collectors, PHCs, ASHA - Scoped to Jurisdiction) */}
+                <Route
+                  path="/analytics"
+                  element={
+                    <ProtectedRoute allowedRoles={['higher_authority', 'admin']}>
+                      <HigherAuthorityAnalyticsPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* 6. App Admin Management Console */}
                 <Route
                   path="/admin"
                   element={

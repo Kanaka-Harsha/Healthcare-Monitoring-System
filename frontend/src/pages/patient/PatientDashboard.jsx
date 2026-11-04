@@ -61,7 +61,7 @@ const PatientDashboard = () => {
     );
   }
 
-  const { patient, vitals_history, clinical_history } = medicalFile;
+  const { patient, vitals_history, clinical_history, reports = [] } = medicalFile;
   const latestVitals = vitals_history.length > 0 ? vitals_history[0] : null;
 
   // Chart data
@@ -191,6 +191,47 @@ const PatientDashboard = () => {
           </div>
         </div>
       )}
+
+      {/* Uploaded Medical Reports & Scans */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900">
+              My Medical Reports & Lab Files
+            </h3>
+            <p className="text-xs text-slate-500">Reports uploaded at the healthcamp or clinic desk</p>
+          </div>
+          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+            {reports.length} File(s)
+          </span>
+        </div>
+
+        {reports.length === 0 ? (
+          <p className="text-xs text-slate-500 py-3 text-center">
+            No previous medical reports uploaded yet. You can give your reports to the village health worker to upload.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {reports.map((r) => (
+              <div key={r.id} className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs">
+                <div className="min-w-0 pr-2">
+                  <span className="font-bold text-slate-900 block">{r.report_type}</span>
+                  <span className="text-[11px] text-slate-500 block truncate max-w-[200px]">{r.stored_filename}</span>
+                  <span className="text-[10px] text-slate-400">Added on {new Date(r.created_at).toLocaleDateString()}</span>
+                </div>
+                <a
+                  href={`/api/v1/reports/download/${r.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-teal-800 hover:bg-teal-900 text-white font-semibold text-xs shadow-sm transition flex-shrink-0"
+                >
+                  Download
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Doctor Prescriptions & Clinical Advice */}
       <div className="bg-white p-5 rounded border border-slate-200 shadow-sm space-y-4">
