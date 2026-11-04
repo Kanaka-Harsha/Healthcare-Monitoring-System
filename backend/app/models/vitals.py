@@ -12,23 +12,26 @@ class VitalsRecord(Base):
     patient_id = Column(UUID(as_uuid=True), ForeignKey("patients.id", ondelete="CASCADE"), nullable=False, index=True)
     collector_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     
-    # Core Vitals from BLE / ESP32
+    # Core Vitals from BLE / ESP32 or Manual Intake
     systolic_bp = Column(Float, nullable=True)     # mmHg
     diastolic_bp = Column(Float, nullable=True)    # mmHg
     heart_rate = Column(Integer, nullable=True)    # BPM
     spo2 = Column(Float, nullable=True)            # %
     
     # Optional / Future sensor parameters
-    temperature = Column(Float, nullable=True)     # °C or °F
+    temperature = Column(Float, nullable=True)     # °C
     blood_glucose = Column(Float, nullable=True)   # mg/dL
     respiratory_rate = Column(Integer, nullable=True)
     
-    # Extensibility for any additional IoT metrics
+    # Clinical Triaging: 'Green' (Normal), 'Orange' (Medium / Attention), 'Red' (High Risk / Urgent)
+    risk_level = Column(String(20), default="Green", index=True)
+
+    # Extensibility for IoT metrics
     additional_metrics = Column(JSON, nullable=True)
     
     # Device / Sync Info
-    device_id = Column(String(100), nullable=True)  # ESP32 MAC/Identifier
-    client_sync_id = Column(String(100), nullable=True, unique=True, index=True) # For offline deduplication
+    device_id = Column(String(100), nullable=True)
+    client_sync_id = Column(String(100), nullable=True, unique=True, index=True)
     recorded_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
     synced_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 

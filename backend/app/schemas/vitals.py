@@ -19,6 +19,7 @@ class VitalsRecordCreate(BaseModel):
     spo2: Optional[float] = Field(None, description="Blood Oxygen Saturation (%)")
     temperature: Optional[float] = Field(None, description="Body Temperature (°C or °F)")
     blood_glucose: Optional[float] = Field(None, description="Blood Glucose (mg/dL)")
+    risk_level: Optional[str] = "Green"
     
     additional_metrics: Optional[Dict[str, Any]] = None
     device_id: Optional[str] = None
@@ -38,6 +39,7 @@ class VitalsRecordOut(BaseModel):
     spo2: Optional[float] = None
     temperature: Optional[float] = None
     blood_glucose: Optional[float] = None
+    risk_level: Optional[str] = "Green"
     additional_metrics: Optional[Dict[str, Any]] = None
     device_id: Optional[str] = None
     client_sync_id: Optional[str] = None

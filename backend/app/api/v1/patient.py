@@ -8,9 +8,11 @@ from app.models.user import User
 from app.models.patient import Patient
 from app.models.vitals import VitalsRecord
 from app.models.clinical import ClinicalNote
+from app.models.report import MedicalReport
 from app.schemas.doctor import PatientMedicalFileOut, ClinicalNoteOut
 from app.schemas.patient import PatientOut
 from app.schemas.vitals import VitalsRecordOut
+from app.schemas.report import MedicalReportOut
 from app.api.deps import get_current_user, require_role
 
 router = APIRouter()
@@ -33,7 +35,7 @@ def get_my_patient_records(
     if not patient:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Patient profile not found."
+            detail="Your patient profile was not found. Please visit your local health camp to register."
         )
 
     vitals = db.query(VitalsRecord).filter(
@@ -43,6 +45,10 @@ def get_my_patient_records(
     notes = db.query(ClinicalNote).filter(
         ClinicalNote.patient_id == patient.id
     ).order_by(desc(ClinicalNote.created_at)).all()
+
+    reports = db.query(MedicalReport).filter(
+        MedicalReport.patient_id == patient.id
+    ).order_by(desc(MedicalReport.created_at)).all()
 
     formatted_clinical = []
     for note in notes:
@@ -61,9 +67,27 @@ def get_my_patient_records(
             )
         )
 
+    formatted_reports = []
+    for r in reports:
+        formatted_reports.append(
+            MedicalReportOut(
+                id=r.id,
+                patient_id=r.patient_id,
+                report_type=r.report_type,
+                original_filename=r.original_filename,
+                stored_filename=r.stored_filename,
+                file_path=r.file_path,
+                file_size_bytes=r.file_size_bytes,
+                mime_type=r.mime_type,
+                created_at=r.created_at,
+                uploaded_by_name=r.uploaded_by.full_name if r.uploaded_by else "Staff"
+            )
+        )
+
     return PatientMedicalFileOut(
         patient=PatientOut.model_validate(patient),
         vitals_history=[VitalsRecordOut.model_validate(v) for v in vitals],
         clinical_history=formatted_clinical,
+        reports=formatted_reports,
         is_session_unlocked=True
     )

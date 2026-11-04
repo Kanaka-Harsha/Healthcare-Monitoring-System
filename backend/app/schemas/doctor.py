@@ -4,6 +4,7 @@ from uuid import UUID
 from datetime import datetime
 from app.schemas.patient import PatientOut
 from app.schemas.vitals import VitalsRecordOut
+from app.schemas.report import MedicalReportOut
 
 class DoctorSearchPatientRequest(BaseModel):
     phone: str = Field(..., description="10-digit Patient phone number")
@@ -39,4 +40,5 @@ class PatientMedicalFileOut(BaseModel):
     patient: PatientOut
     vitals_history: List[VitalsRecordOut]
     clinical_history: List[ClinicalNoteOut]
+    reports: List[MedicalReportOut] = []
     is_session_unlocked: bool = True

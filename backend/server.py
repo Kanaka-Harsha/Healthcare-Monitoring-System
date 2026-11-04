@@ -9,3 +9,12 @@ if __name__ == "__main__":
         reload=True,
         reload_dirs=["app"]
     )
+
+
+'''
+cd backend
+.\venv\Scripts\Activate
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+ngrok http 8000
+'''

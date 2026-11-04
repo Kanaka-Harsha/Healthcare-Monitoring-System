@@ -6,6 +6,7 @@ from app.models.session import DoctorAccessSession
 from app.models.clinical import ClinicalNote
 from app.models.device import Device
 from app.models.audit import AuditLog
+from app.models.report import MedicalReport
 
 __all__ = [
     "Base",
@@ -15,5 +16,6 @@ __all__ = [
     "DoctorAccessSession",
     "ClinicalNote",
     "Device",
-    "AuditLog"
+    "AuditLog",
+    "MedicalReport"
 ]

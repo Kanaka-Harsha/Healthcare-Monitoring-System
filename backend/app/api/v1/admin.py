@@ -119,26 +119,37 @@ def create_staff_user(
     current_user: User = Depends(admin_only)
 ):
     """
-    Create a new staff user (Doctor, Collector, or Admin).
+    Create a new user (Doctor, Camp Assistant, Volunteer, Higher Authority, or Admin).
     """
-    clean_phone = "".join(filter(str.isdigit, payload.phone))
-    
+    clean_username = payload.username.strip().lower()
+    clean_phone = "".join(filter(str.isdigit, payload.phone))[-10:]
+
+    existing_user = db.query(User).filter(User.username == clean_username).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="A user with this username already exists.")
+
     if payload.email:
         existing_email = db.query(User).filter(User.email == payload.email.strip().lower()).first()
         if existing_email:
-            raise HTTPException(status_code=400, detail="User with this email already exists.")
+            raise HTTPException(status_code=400, detail="A user with this email already exists.")
     
     existing_phone = db.query(User).filter(User.phone == clean_phone).first()
     if existing_phone:
-        raise HTTPException(status_code=400, detail="User with this phone number already exists.")
+        raise HTTPException(status_code=400, detail="A user with this phone number already exists.")
 
     new_user = User(
-        full_name=payload.full_name,
+        username=clean_username,
+        full_name=payload.full_name.strip(),
         email=payload.email.strip().lower() if payload.email else None,
         phone=clean_phone,
         role=payload.role,
         password_hash=get_password_hash(payload.password),
-        is_active=payload.is_active
+        is_active=payload.is_active,
+        jurisdiction_level=payload.jurisdiction_level,
+        jurisdiction_state=payload.jurisdiction_state,
+        jurisdiction_district=payload.jurisdiction_district,
+        jurisdiction_block=payload.jurisdiction_block,
+        jurisdiction_village=payload.jurisdiction_village
     )
     db.add(new_user)
     db.commit()
@@ -150,7 +161,7 @@ def create_staff_user(
         user_id=current_user.id,
         resource_type="user",
         resource_id=str(new_user.id),
-        details=f"Admin {current_user.full_name} created user {new_user.full_name} with role {new_user.role}"
+        details=f"Admin {current_user.full_name} created user {new_user.full_name} ({new_user.username}) with role {new_user.role}"
     )
 
     return new_user
@@ -163,11 +174,19 @@ def update_user(
     current_user: User = Depends(admin_only)
 ):
     """
-    Admin updates a staff member or user, changes role, or allocates a new password.
+    Admin updates a staff member or user, changes role, resets password, or updates jurisdiction.
     """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="User not found.")
+
+    if payload.username is not None:
+        clean_user = payload.username.strip().lower()
+        if clean_user != user.username:
+            existing = db.query(User).filter(User.username == clean_user, User.id != user_id).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="Username already in use.")
+            user.username = clean_user
 
     if payload.full_name is not None:
         user.full_name = payload.full_name.strip()
@@ -189,6 +208,16 @@ def update_user(
         user.role = payload.role
     if payload.is_active is not None:
         user.is_active = payload.is_active
+    if payload.jurisdiction_level is not None:
+        user.jurisdiction_level = payload.jurisdiction_level
+    if payload.jurisdiction_state is not None:
+        user.jurisdiction_state = payload.jurisdiction_state
+    if payload.jurisdiction_district is not None:
+        user.jurisdiction_district = payload.jurisdiction_district
+    if payload.jurisdiction_block is not None:
+        user.jurisdiction_block = payload.jurisdiction_block
+    if payload.jurisdiction_village is not None:
+        user.jurisdiction_village = payload.jurisdiction_village
     if payload.password and payload.password.strip():
         user.password_hash = get_password_hash(payload.password.strip())
 
@@ -436,6 +465,19 @@ def admin_create_patient(
             medical_history=payload.medical_history
         )
         db.add(patient)
+        db.flush()
+
+        user = db.query(User).filter(User.phone == clean_phone).first()
+        if not user:
+            user = User(
+                id=patient.id,
+                full_name=patient.full_name,
+                phone=clean_phone,
+                role="patient",
+                is_active=True
+            )
+            db.add(user)
+
         db.commit()
         db.refresh(patient)
 

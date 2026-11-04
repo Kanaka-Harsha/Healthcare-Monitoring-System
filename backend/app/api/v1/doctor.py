@@ -177,7 +177,10 @@ def verify_patient_consent_otp(
         ip_address=request.client.host if request.client else None
     )
 
-    # Fetch vitals and clinical history
+    from app.models.report import MedicalReport
+    from app.schemas.report import MedicalReportOut
+
+    # Fetch vitals, clinical history, and uploaded medical reports
     vitals_history = db.query(VitalsRecord).filter(
         VitalsRecord.patient_id == patient.id
     ).order_by(desc(VitalsRecord.recorded_at)).all()
@@ -185,6 +188,10 @@ def verify_patient_consent_otp(
     clinical_notes = db.query(ClinicalNote).filter(
         ClinicalNote.patient_id == patient.id
     ).order_by(desc(ClinicalNote.created_at)).all()
+
+    reports = db.query(MedicalReport).filter(
+        MedicalReport.patient_id == patient.id
+    ).order_by(desc(MedicalReport.created_at)).all()
 
     formatted_clinical = []
     for note in clinical_notes:
@@ -203,10 +210,28 @@ def verify_patient_consent_otp(
             )
         )
 
+    formatted_reports = []
+    for r in reports:
+        formatted_reports.append(
+            MedicalReportOut(
+                id=r.id,
+                patient_id=r.patient_id,
+                report_type=r.report_type,
+                original_filename=r.original_filename,
+                stored_filename=r.stored_filename,
+                file_path=r.file_path,
+                file_size_bytes=r.file_size_bytes,
+                mime_type=r.mime_type,
+                created_at=r.created_at,
+                uploaded_by_name=r.uploaded_by.full_name if r.uploaded_by else "Staff"
+            )
+        )
+
     return PatientMedicalFileOut(
         patient=PatientOut.model_validate(patient),
         vitals_history=[VitalsRecordOut.model_validate(v) for v in vitals_history],
         clinical_history=formatted_clinical,
+        reports=formatted_reports,
         is_session_unlocked=True
     )
 
