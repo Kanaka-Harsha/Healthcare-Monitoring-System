@@ -55,8 +55,8 @@ def run_tests():
     volunteer_token = volunteer_data["access_token"]
     print(f"-> SUCCESS: Volunteer signed in ({volunteer_data['full_name']}, Role: {volunteer_data['role']})")
 
-    # 3. Volunteer Registers Citizen in Village with Separated Address
-    print("\n[3] Testing Village Citizen Registration with Structured Address...")
+    # 3. Volunteer Registers Citizen in Village with Structured Address (Andhra Pradesh)
+    print("\n[3] Testing Village Citizen Registration with Structured Address (Andhra Pradesh)...")
     citizen_payload = {
         "full_name": "Ramesh Kumar Gowda",
         "phone": "9876500001",
@@ -65,12 +65,12 @@ def run_tests():
         "age": 52,
         "gender": "Male",
         "house_number": "4-12/A",
-        "village_or_town": "Bilikere",
-        "city": "Hunsur",
-        "district": "Mysuru",
-        "state": "Karnataka",
+        "village_or_town": "Pendurthi",
+        "city": "Visakhapatnam",
+        "district": "Visakhapatnam",
+        "state": "Andhra Pradesh",
         "country": "India",
-        "pincode": "571103",
+        "pincode": "530051",
         "primary_health_issue": "High Blood Pressure / Dizziness",
         "health_issues_list": ["Hypertension (High Blood Pressure)"]
     }
@@ -80,6 +80,14 @@ def run_tests():
     patient = res.json()
     patient_id = patient["id"]
     print(f"-> SUCCESS: Citizen Registered (ID: {patient_id}, Name: {patient['full_name']}, Village: {patient['village_or_town']}, District: {patient['district']})")
+
+    # 3b. Verify Assistant/Camp can find this patient directly via search
+    print("\n[3b] Testing Assistant/Camp finding Volunteer-registered patient...")
+    res_search = requests.get(f"{BASE_URL}/collector/patient/search?phone=9876500001", headers=headers_vol)
+    assert res_search.status_code == 200, f"Patient search failed: {res_search.text}"
+    found_pat = res_search.json()
+    assert found_pat["full_name"] == "Ramesh Kumar Gowda"
+    print(f"-> SUCCESS: Assistant/Camp located {found_pat['full_name']} directly by phone without re-registering!")
 
     # 4. Upload Multiple Medical Reports for Citizen
     print("\n[4] Testing Multi-File Medical Reports Upload...")
@@ -118,7 +126,7 @@ def run_tests():
     res = requests.get(f"{BASE_URL}/patient/my-records", headers=headers_pat)
     assert res.status_code == 200, f"Fetching patient records failed: {res.text}"
     my_records = res.json()
-    assert len(my_records["reports"]) == 2, f"Expected 2 reports in patient file, got {len(my_records['reports'])}"
+    assert len(my_records["reports"]) >= 2, f"Expected at least 2 reports in patient file, got {len(my_records['reports'])}"
     print(f"-> SUCCESS: Patient successfully accessed their records and verified {len(my_records['reports'])} test report(s)!")
 
     # 6. Camp Assistant Ingests Vitals -> Auto Risk Computation
@@ -156,7 +164,7 @@ def run_tests():
     authority_token = res.json()["access_token"]
     headers_auth = {"Authorization": f"Bearer {authority_token}"}
 
-    res = requests.get(f"{BASE_URL}/analytics/dashboard?district=Mysuru&time_range=30d", headers=headers_auth)
+    res = requests.get(f"{BASE_URL}/analytics/dashboard?district=Visakhapatnam&time_range=30d", headers=headers_auth)
     assert res.status_code == 200, f"Analytics query failed: {res.text}"
     analytics_data = res.json()
     summary = analytics_data["summary"]

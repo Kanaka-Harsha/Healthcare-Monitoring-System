@@ -105,12 +105,12 @@ def init_db(reset: bool = False):
             db.commit()
             db_logger.info("[DOCTOR] Fresh Doctor created: username=dr_sarah")
 
-        # 3. Seed Demo Camp Assistant
+        # 3. Seed Demo Assistant/Camp
         demo_assistant = db.query(User).filter(User.username == "assistant_alex").first()
         if not demo_assistant:
             assistant = User(
                 username="assistant_alex",
-                full_name="Alex Turner (Camp Assistant)",
+                full_name="Alex Turner (Assistant/Camp)",
                 email="assistant@healthcare.local",
                 phone="9123456780",
                 role="camp_assistant",
@@ -119,7 +119,10 @@ def init_db(reset: bool = False):
             )
             db.add(assistant)
             db.commit()
-            db_logger.info("[ASSISTANT] Fresh Camp Assistant created: username=assistant_alex")
+            db_logger.info("[ASSISTANT] Fresh Assistant/Camp created: username=assistant_alex")
+        else:
+            demo_assistant.full_name = "Alex Turner (Assistant/Camp)"
+            db.commit()
 
         # 4. Seed Demo Volunteer (Village Level)
         demo_volunteer = db.query(User).filter(User.username == "volunteer_maya").first()
@@ -147,14 +150,18 @@ def init_db(reset: bool = False):
                 phone="9111111111",
                 role="higher_authority",
                 jurisdiction_level="district",
-                jurisdiction_state="Karnataka",
-                jurisdiction_district="Mysuru",
+                jurisdiction_state="Andhra Pradesh",
+                jurisdiction_district="Visakhapatnam",
                 password_hash=get_password_hash("Authority@123"),
                 is_active=True
             )
             db.add(authority)
             db.commit()
             db_logger.info("[AUTHORITY] Fresh Higher Authority created: username=collector_rao")
+        else:
+            demo_authority.jurisdiction_state = "Andhra Pradesh"
+            demo_authority.jurisdiction_district = "Visakhapatnam"
+            db.commit()
 
     except Exception as e:
         db.rollback()

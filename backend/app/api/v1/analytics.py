@@ -13,8 +13,32 @@ from app.api.deps import get_current_user
 
 router = APIRouter()
 
+INDIA_STATES_AND_UTS = [
+    "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
+    "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka",
+    "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram",
+    "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu",
+    "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+    "Andaman and Nicobar Islands", "Chandigarh",
+    "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Jammu and Kashmir",
+    "Ladakh", "Lakshadweep", "Puducherry",
+]
+
+# Current AP district names from the Government of India's IGOD directory (28).
+ANDHRA_PRADESH_DISTRICTS = [
+    "Alluri Sitharama Raju", "Anakapalli", "Ananthapuramu", "Annamayya",
+    "Bapatla", "Chittoor", "Dr. B.R. Ambedkar Konaseema", "East Godavari",
+    "Eluru", "Guntur", "Kakinada", "Krishna", "Kurnool", "Markapuram",
+    "Nandyal", "NTR", "Palnadu", "Parvathipuram Manyam", "Polavaram",
+    "Prakasam", "Sri Potti Sriramulu Nellore", "Sri Sathya Sai", "Srikakulam",
+    "Tirupati", "Visakhapatnam", "Vizianagaram", "West Godavari", "YSR Kadapa",
+]
+
 @router.get("/locations")
 def get_filter_locations(
+    state: Optional[str] = Query(None),
+    district: Optional[str] = Query(None),
+    city: Optional[str] = Query(None),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -29,20 +53,30 @@ def get_filter_locations(
             detail="Analytics access is not permitted for this role."
         )
 
-    states = [s[0] for s in db.query(Patient.state).distinct().filter(Patient.state.isnot(None)).all() if s[0]]
-    districts = [d[0] for d in db.query(Patient.district).distinct().filter(Patient.district.isnot(None)).all() if d[0]]
-    cities = [c[0] for c in db.query(Patient.city).distinct().filter(Patient.city.isnot(None)).all() if c[0]]
-    villages = [v[0] for v in db.query(Patient.village_or_town).distinct().filter(Patient.village_or_town.isnot(None)).all() if v[0]]
-    problems = [p[0] for p in db.query(Patient.primary_health_issue).distinct().filter(Patient.primary_health_issue.isnot(None)).all() if p[0]]
+    state_query = db.query(Patient)
+    if state and state != "All":
+        state_query = state_query.filter(Patient.state.ilike(state.strip()))
 
-    # Provide curated Indian default suggestions if database is new/empty
-    default_states = ["Karnataka", "Maharashtra", "Tamil Nadu", "Telangana", "Andhra Pradesh", "Kerala", "Uttar Pradesh"]
-    default_districts = ["Mysuru", "Bengaluru Urban", "Mandya", "Hassan", "Belagavi", "Pune", "Mumbai", "Chennai", "Hyderabad"]
+    district_query = state_query
+    if district and district != "All":
+        district_query = district_query.filter(Patient.district.ilike(district.strip()))
+
+    locality_query = district_query
+    if city and city != "All":
+        locality_query = locality_query.filter(Patient.city.ilike(city.strip()))
+
+    stored_states = [r[0] for r in db.query(Patient.state).distinct().filter(Patient.state.isnot(None)).all() if r[0]]
+    districts = [r[0] for r in state_query.with_entities(Patient.district).distinct().filter(Patient.district.isnot(None)).all() if r[0]]
+    cities = [r[0] for r in district_query.with_entities(Patient.city).distinct().filter(Patient.city.isnot(None)).all() if r[0]]
+    villages = [r[0] for r in locality_query.with_entities(Patient.village_or_town).distinct().filter(Patient.village_or_town.isnot(None)).all() if r[0]]
+    problems = [r[0] for r in locality_query.with_entities(Patient.primary_health_issue).distinct().filter(Patient.primary_health_issue.isnot(None)).all() if r[0]]
+    if not state or state == "All" or state.strip().casefold() == "andhra pradesh":
+        districts.extend(ANDHRA_PRADESH_DISTRICTS)
 
     return {
-        "states": sorted(list(set(states + default_states))),
-        "districts": sorted(list(set(districts + default_districts))),
-        "cities": sorted(cities),
+        "states": sorted(set(INDIA_STATES_AND_UTS + stored_states), key=str.casefold),
+        "districts": sorted(set(districts), key=str.casefold),
+        "cities": sorted(set(cities), key=str.casefold),
         "villages": sorted(villages),
         "problems": sorted(problems)
     }

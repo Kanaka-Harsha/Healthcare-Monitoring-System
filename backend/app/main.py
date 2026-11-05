@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 
 from app.core.config import settings
 from app.core.logger import setup_logging, server_logger, access_logger
@@ -79,6 +80,24 @@ async def log_requests_middleware(request: Request, call_next):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"detail": "Internal server error. The incident has been logged."}
         )
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    errors = exc.errors()
+    access_logger.warning(
+        f"⚠️ [VALIDATION ERROR 422] {request.method} {request.url.path} | Errors: {errors}"
+    )
+    readable_errors = [
+        f"{e['loc'][-1] if e.get('loc') else 'field'}: {e.get('msg')}"
+        for e in errors
+    ]
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "detail": "; ".join(readable_errors),
+            "errors": errors
+        }
+    )
 
 # CORS Configuration
 if isinstance(settings.CORS_ORIGINS, str):

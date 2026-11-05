@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, or_
 
@@ -19,6 +19,73 @@ router = APIRouter()
 
 # Staff allowed to register patients and submit vitals
 camp_staff_or_admin = require_role(["camp_assistant", "volunteer", "doctor", "admin", "collector", "registrar"])
+
+@router.get("/patient/search", response_model=PatientOut)
+def search_patient_for_camp(
+    phone: Optional[str] = Query(None, description="10-digit mobile number"),
+    query: Optional[str] = Query(None, description="Phone, Aadhaar, or Name"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(camp_staff_or_admin)
+):
+    """
+    Search the master patient registry by phone number, Aadhaar, or Name.
+    Allows Assistant/Camp to immediately locate patients registered by Volunteers
+    without requiring re-registration.
+    """
+    search_val = (phone or query or "").strip()
+    if not search_val:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Please enter a phone number or name to search."
+        )
+
+    clean_digits = "".join(filter(str.isdigit, search_val))
+
+    patient = None
+    # 1. Search by normalized mobile number. Older records may include +91,
+    # spaces, or punctuation, so also match the final ten digits.
+    if len(clean_digits) >= 10:
+        last_10 = clean_digits[-10:]
+        patient = db.query(Patient).filter(
+            or_(Patient.phone == last_10, Patient.phone.ilike(f"%{last_10}"))
+        ).first()
+
+        # Some earlier registration flows created the patient login first.
+        # Resolve that account back to its patient profile before offering a
+        # second registration.
+        if not patient:
+            patient_user = db.query(User).filter(
+                User.role == "patient",
+                or_(
+                    User.phone == last_10,
+                    User.phone.ilike(f"%{last_10}"),
+                    User.username == last_10,
+                ),
+            ).first()
+            if patient_user:
+                patient = db.query(Patient).filter(
+                    or_(Patient.id == patient_user.id, Patient.phone.ilike(f"%{last_10}"))
+                ).first()
+
+    # 2. Search by 12-digit Aadhaar number
+    if not patient and len(clean_digits) == 12:
+        aadhaar_h = hash_aadhaar(clean_digits)
+        patient = db.query(Patient).filter(Patient.aadhaar_hash == aadhaar_h).first()
+
+    # 3. Fallback: match by full name or partial phone
+    if not patient:
+        filters = [Patient.full_name.ilike(f"%{search_val}%"), Patient.aadhaar_masked.like(f"%{search_val}%")]
+        if clean_digits:
+            filters.append(Patient.phone.like(f"%{clean_digits}%"))
+        patient = db.query(Patient).filter(or_(*filters)).first()
+
+    if not patient:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"No registered citizen found for '{search_val}'. Please verify the mobile number or register them below."
+        )
+
+    return patient
 
 @router.post("/patient", response_model=PatientOut)
 def register_or_get_patient(

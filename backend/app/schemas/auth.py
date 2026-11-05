@@ -19,7 +19,11 @@ class TokenPayload(BaseModel):
     role: Optional[str] = None
 
 class LoginRequest(BaseModel):
-    username: str = Field(..., description="Username or registered phone number")
+    username: Optional[str] = Field(None, description="Username, email, or registered phone number")
+    username_or_phone: Optional[str] = Field(None, description="Username or phone (legacy frontend compatibility)")
+    identifier: Optional[str] = Field(None, description="Identifier (legacy frontend compatibility)")
+    email: Optional[str] = Field(None, description="Registered email address")
+    phone: Optional[str] = Field(None, description="10-digit mobile number")
     password: str = Field(..., description="Password or account PIN")
 
 class PatientLoginRequest(BaseModel):

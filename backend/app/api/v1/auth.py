@@ -27,15 +27,33 @@ def login(
     Standard Username & Password login for all roles.
     Patients can log in with their Phone number as their Username.
     """
-    cleaned_input = payload.username.strip()
+    raw_identifier = (
+        payload.username or 
+        payload.username_or_phone or 
+        payload.identifier or 
+        payload.email or 
+        payload.phone or 
+        ""
+    ).strip()
+    if not raw_identifier:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Please provide your username, email, or mobile number to log in."
+        )
+
+    cleaned_input = raw_identifier
     clean_digits = "".join(filter(str.isdigit, cleaned_input))[-10:]
 
     try:
-        # Search by username, or by phone if numeric
-        search_filter = (User.username == cleaned_input)
+        # Search by username, email, or phone
+        search_filter = or_(
+            User.username == cleaned_input,
+            User.email == cleaned_input
+        )
         if clean_digits and len(clean_digits) == 10:
             search_filter = or_(
                 User.username == cleaned_input,
+                User.email == cleaned_input,
                 User.phone == clean_digits,
                 User.phone == cleaned_input
             )
@@ -89,7 +107,7 @@ def login(
             user_id=user.id,
             resource_type="auth",
             details=f"User {user.full_name} ({user.username}) logged in with role {user.role}",
-            ip_address=request.client.host if request.client else None
+            ip_address=request.client.host if (request and request.client) else None
         )
 
         return Token(
@@ -136,7 +154,7 @@ def signup_staff(
         if payload.role not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Please choose a valid role (Doctor or Camp Assistant)."
+                detail="Please choose a valid role (Doctor or Assistant/Camp)."
             )
 
         clean_username = payload.username.strip().lower()
@@ -186,7 +204,7 @@ def signup_staff(
             user_id=new_user.id,
             resource_type="user",
             details=f"Staff account created: {new_user.username} ({new_user.role})",
-            ip_address=request.client.host if request.client else None
+            ip_address=request.client.host if (request and request.client) else None
         )
 
         token = create_access_token(subject=str(new_user.id), role=new_user.role)
