@@ -34,7 +34,10 @@ const AdminDashboard = () => {
   const [userRole, setUserRole] = useState('doctor');
   const [userPassword, setUserPassword] = useState('');
   const [userDistrict, setUserDistrict] = useState('');
-  const [userState, setUserState] = useState('Karnataka');
+  const [userState, setUserState] = useState('Andhra Pradesh');
+  const [userAuthorityLevel, setUserAuthorityLevel] = useState('district');
+  const [userMandal, setUserMandal] = useState('');
+  const [userPhc, setUserPhc] = useState('');
   const [userActionMsg, setUserActionMsg] = useState(null);
   const [userSubmitting, setUserSubmitting] = useState(false);
 
@@ -152,7 +155,10 @@ const AdminDashboard = () => {
     setUserRole('doctor');
     setUserPassword('');
     setUserDistrict('');
-    setUserState('Karnataka');
+    setUserState('Andhra Pradesh');
+    setUserAuthorityLevel('district');
+    setUserMandal('');
+    setUserPhc('');
     setShowCreateUserModal(true);
   };
 
@@ -165,7 +171,10 @@ const AdminDashboard = () => {
     setUserRole(user.role);
     setUserPassword('');
     setUserDistrict(user.jurisdiction_district || '');
-    setUserState(user.jurisdiction_state || 'Karnataka');
+    setUserState(user.jurisdiction_state || 'Andhra Pradesh');
+    setUserAuthorityLevel(user.jurisdiction_level || 'district');
+    setUserMandal(user.jurisdiction_block || '');
+    setUserPhc(user.jurisdiction_phc || '');
     setShowCreateUserModal(true);
   };
 
@@ -201,7 +210,10 @@ const AdminDashboard = () => {
           phone: cleanPhone,
           role: userRole,
           jurisdiction_district: userDistrict.trim() || null,
-          jurisdiction_state: userState.trim() || null,
+          jurisdiction_state: userRole === 'higher_authority' ? 'Andhra Pradesh' : (userState.trim() || null),
+          jurisdiction_level: userAuthorityLevel,
+          jurisdiction_block: userMandal.trim() || null,
+          jurisdiction_phc: userPhc.trim() || null,
         };
         if (userPassword.trim()) {
           payload.password = userPassword.trim();
@@ -224,7 +236,10 @@ const AdminDashboard = () => {
           password: userPassword.trim(),
           is_active: true,
           jurisdiction_district: userDistrict.trim() || null,
-          jurisdiction_state: userState.trim() || null,
+          jurisdiction_state: userRole === 'higher_authority' ? 'Andhra Pradesh' : (userState.trim() || null),
+          jurisdiction_level: userAuthorityLevel,
+          jurisdiction_block: userMandal.trim() || null,
+          jurisdiction_phc: userPhc.trim() || null,
         });
         setUserActionMsg({ type: 'success', text: `Account for ${userFullName} (${userRole}) created with username ${userUsername.trim().toLowerCase()}.` });
       }
@@ -479,7 +494,7 @@ const AdminDashboard = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-gradient-to-r from-teal-900 to-slate-900 text-white shadow-sm gap-3">
             <div>
               <h3 className="text-sm font-bold">Public Health & Disease Surveillance Analytics Portal</h3>
-              <p className="text-xs text-teal-200 mt-0.5">Interactive Red / Orange / Green health mapping across all states and districts.</p>
+              <p className="text-xs text-teal-200 mt-0.5">Andhra Pradesh health screening and community trends.</p>
             </div>
             <a
               href="/analytics"
@@ -1053,16 +1068,17 @@ const AdminDashboard = () => {
               </div>
 
               {userRole === 'higher_authority' && (
-                <div className="grid grid-cols-2 gap-3 p-3 bg-purple-50 rounded-xl border border-purple-200">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-purple-50 rounded-xl border border-purple-200">
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-semibold text-purple-900 mb-1">Authority level</label>
+                    <select value={userAuthorityLevel} onChange={e => setUserAuthorityLevel(e.target.value)} className="w-full text-xs px-2.5 py-2 rounded border border-purple-300 bg-white">
+                      <option value="phc">PHC / health centre</option><option value="mandal">Mandal</option><option value="district">District</option><option value="state">State</option>
+                    </select>
+                    <p className="mt-1 text-[11px] text-purple-800">This account can view its assigned area and all smaller areas below it.</p>
+                  </div>
                   <div>
                     <label className="block text-xs font-semibold text-purple-900 mb-1">Assigned State</label>
-                    <input
-                      type="text"
-                      value={userState}
-                      onChange={(e) => setUserState(e.target.value)}
-                      placeholder="e.g. Karnataka"
-                      className="w-full text-xs px-2.5 py-1.5 rounded border border-purple-300 bg-white"
-                    />
+                    <div className="w-full text-xs px-2.5 py-2 rounded border border-purple-300 bg-white text-slate-700">Andhra Pradesh</div>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-purple-900 mb-1">Assigned District</label>
@@ -1070,10 +1086,18 @@ const AdminDashboard = () => {
                       type="text"
                       value={userDistrict}
                       onChange={(e) => setUserDistrict(e.target.value)}
-                      placeholder="e.g. Mysuru"
+                      placeholder="e.g. Visakhapatnam"
                       className="w-full text-xs px-2.5 py-1.5 rounded border border-purple-300 bg-white"
                     />
                   </div>
+                  {['mandal','phc'].includes(userAuthorityLevel) && <div>
+                    <label className="block text-xs font-semibold text-purple-900 mb-1">Assigned Mandal</label>
+                    <input type="text" value={userMandal} onChange={e=>setUserMandal(e.target.value)} placeholder="Mandal name" className="w-full text-xs px-2.5 py-1.5 rounded border border-purple-300 bg-white" />
+                  </div>}
+                  {userAuthorityLevel === 'phc' && <div>
+                    <label className="block text-xs font-semibold text-purple-900 mb-1">Assigned PHC</label>
+                    <input type="text" value={userPhc} onChange={e=>setUserPhc(e.target.value)} placeholder="PHC name" className="w-full text-xs px-2.5 py-1.5 rounded border border-purple-300 bg-white" />
+                  </div>}
                 </div>
               )}
 

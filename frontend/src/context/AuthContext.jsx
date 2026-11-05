@@ -25,6 +25,10 @@ export const AuthProvider = ({ children }) => {
       role: data.role,
       district: data.jurisdiction_district || null,
       state: data.jurisdiction_state || null,
+      jurisdictionLevel: data.jurisdiction_level || null,
+      mandal: data.jurisdiction_block || null,
+      village: data.jurisdiction_village || null,
+      phc: data.jurisdiction_phc || null,
     };
     setToken(data.access_token);
     setUser(userData);
