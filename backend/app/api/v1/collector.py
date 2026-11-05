@@ -148,6 +148,9 @@ def register_or_get_patient(
         # Health issue
         if payload.primary_health_issue: patient.primary_health_issue = payload.primary_health_issue
         if payload.health_issues_list: patient.health_issues_list = payload.health_issues_list
+        for field in ("age_months", "mandal", "phc_name", "is_pregnant", "pregnancy_month", "pregnancy_issues", "anc_visit_count", "vaccination_status", "weight_kg", "height_cm", "growth_issues", "health_issue_categories"):
+            if field in payload.model_fields_set:
+                setattr(patient, field, getattr(payload, field))
         if payload.emergency_contact: patient.emergency_contact = payload.emergency_contact
         if payload.medical_history: patient.medical_history = payload.medical_history
         
@@ -198,6 +201,18 @@ def register_or_get_patient(
         house_number=payload.house_number,
         village_or_town=payload.village_or_town,
         city=payload.city,
+        mandal=payload.mandal,
+        phc_name=payload.phc_name,
+        age_months=payload.age_months,
+        is_pregnant=payload.is_pregnant,
+        pregnancy_month=payload.pregnancy_month,
+        pregnancy_issues=payload.pregnancy_issues,
+        anc_visit_count=payload.anc_visit_count,
+        vaccination_status=payload.vaccination_status,
+        weight_kg=payload.weight_kg,
+        height_cm=payload.height_cm,
+        growth_issues=payload.growth_issues,
+        health_issue_categories=payload.health_issue_categories,
         district=payload.district,
         state=payload.state,
         country=payload.country or "India",
@@ -298,6 +313,9 @@ def batch_sync_offline_patients(
                 if item.pincode: patient.pincode = item.pincode
                 patient.address = compiled_address
                 if item.primary_health_issue: patient.primary_health_issue = item.primary_health_issue
+                for field in ("age_months", "mandal", "phc_name", "is_pregnant", "pregnancy_month", "pregnancy_issues", "anc_visit_count", "vaccination_status", "weight_kg", "height_cm", "growth_issues", "health_issue_categories"):
+                    if field in item.model_fields_set:
+                        setattr(patient, field, getattr(item, field))
                 patient.is_scanned = True
                 updated_count += 1
             else:
@@ -311,6 +329,18 @@ def batch_sync_offline_patients(
                     house_number=item.house_number,
                     village_or_town=item.village_or_town,
                     city=item.city,
+                    mandal=item.mandal,
+                    phc_name=item.phc_name,
+                    age_months=item.age_months,
+                    is_pregnant=item.is_pregnant,
+                    pregnancy_month=item.pregnancy_month,
+                    pregnancy_issues=item.pregnancy_issues,
+                    anc_visit_count=item.anc_visit_count,
+                    vaccination_status=item.vaccination_status,
+                    weight_kg=item.weight_kg,
+                    height_cm=item.height_cm,
+                    growth_issues=item.growth_issues,
+                    health_issue_categories=item.health_issue_categories,
                     district=item.district,
                     state=item.state,
                     country=item.country or "India",

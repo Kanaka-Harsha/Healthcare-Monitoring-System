@@ -13,6 +13,10 @@ class Token(BaseModel):
     role: str
     jurisdiction_district: Optional[str] = None
     jurisdiction_state: Optional[str] = None
+    jurisdiction_level: Optional[str] = None
+    jurisdiction_block: Optional[str] = None
+    jurisdiction_village: Optional[str] = None
+    jurisdiction_phc: Optional[str] = None
 
 class TokenPayload(BaseModel):
     sub: Optional[str] = None

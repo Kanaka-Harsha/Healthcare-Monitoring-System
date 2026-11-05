@@ -149,6 +149,7 @@ def create_staff_user(
         jurisdiction_state=payload.jurisdiction_state,
         jurisdiction_district=payload.jurisdiction_district,
         jurisdiction_block=payload.jurisdiction_block,
+        jurisdiction_phc=payload.jurisdiction_phc,
         jurisdiction_village=payload.jurisdiction_village
     )
     db.add(new_user)
@@ -216,6 +217,8 @@ def update_user(
         user.jurisdiction_district = payload.jurisdiction_district
     if payload.jurisdiction_block is not None:
         user.jurisdiction_block = payload.jurisdiction_block
+    if payload.jurisdiction_phc is not None:
+        user.jurisdiction_phc = payload.jurisdiction_phc
     if payload.jurisdiction_village is not None:
         user.jurisdiction_village = payload.jurisdiction_village
     if payload.password and payload.password.strip():

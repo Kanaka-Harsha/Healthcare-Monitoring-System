@@ -17,10 +17,11 @@ class User(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     
     # Jurisdiction for Higher Authorities (e.g. ASHA, PHC Officer, District Collector, State Authority)
-    jurisdiction_level = Column(String(50), nullable=True) # national, state, district, block, village
+    jurisdiction_level = Column(String(50), nullable=True) # national, state, district, mandal, phc, village
     jurisdiction_state = Column(String(100), nullable=True)
     jurisdiction_district = Column(String(100), nullable=True)
     jurisdiction_block = Column(String(100), nullable=True)
+    jurisdiction_phc = Column(String(150), nullable=True)
     jurisdiction_village = Column(String(100), nullable=True)
 
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

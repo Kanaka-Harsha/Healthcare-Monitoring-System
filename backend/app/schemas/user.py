@@ -14,6 +14,7 @@ class UserBase(BaseModel):
     jurisdiction_state: Optional[str] = None
     jurisdiction_district: Optional[str] = None
     jurisdiction_block: Optional[str] = None
+    jurisdiction_phc: Optional[str] = None
     jurisdiction_village: Optional[str] = None
 
 class UserCreate(UserBase):
@@ -31,6 +32,7 @@ class UserUpdate(BaseModel):
     jurisdiction_state: Optional[str] = None
     jurisdiction_district: Optional[str] = None
     jurisdiction_block: Optional[str] = None
+    jurisdiction_phc: Optional[str] = None
     jurisdiction_village: Optional[str] = None
 
 class UserOut(UserBase):

@@ -8,12 +8,15 @@ class PatientCreate(BaseModel):
     phone: str = Field(..., description="10-digit Indian phone number")
     aadhaar_number: str = Field(..., description="12-digit Aadhaar number")
     age: Optional[int] = Field(None, ge=0, le=130)
+    age_months: Optional[int] = Field(None, ge=0, le=240)
     gender: Optional[str] = Field(None, description="Male, Female, Other")
     
     # Separated Address Fields
     house_number: Optional[str] = None
     village_or_town: Optional[str] = None
     city: Optional[str] = None
+    mandal: Optional[str] = None
+    phc_name: Optional[str] = None
     district: Optional[str] = None
     state: Optional[str] = None
     country: Optional[str] = "India"
@@ -23,6 +26,15 @@ class PatientCreate(BaseModel):
     # Categorization for Analytics
     primary_health_issue: Optional[str] = None
     health_issues_list: Optional[List[str]] = None
+    health_issue_categories: Optional[List[str]] = None
+    is_pregnant: Optional[bool] = None
+    pregnancy_month: Optional[int] = Field(None, ge=1, le=9)
+    pregnancy_issues: Optional[List[str]] = None
+    anc_visit_count: Optional[int] = Field(None, ge=0, le=30)
+    vaccination_status: Optional[str] = None
+    weight_kg: Optional[float] = Field(None, ge=0, le=300)
+    height_cm: Optional[float] = Field(None, ge=0, le=250)
+    growth_issues: Optional[List[str]] = None
     risk_category: Optional[str] = "Green"
     
     # Patient Login PIN set during village scan (defaults to last 4 digits of phone if omitted)
@@ -39,6 +51,14 @@ class PatientCreate(BaseModel):
             raise ValueError("Phone number must contain at least 10 digits")
         return clean[-10:]
 
+    @field_validator("state")
+    def validate_state(cls, value: Optional[str]) -> Optional[str]:
+        if value is None or not value.strip():
+            return value
+        if value.strip().casefold() != "andhra pradesh":
+            raise ValueError("Only Andhra Pradesh is supported.")
+        return "Andhra Pradesh"
+
     @field_validator("aadhaar_number")
     def validate_aadhaar(cls, v: str) -> str:
         clean = "".join(filter(str.isdigit, v))
@@ -52,10 +72,13 @@ class BatchPatientSyncRequest(BaseModel):
 class PatientUpdate(BaseModel):
     full_name: Optional[str] = None
     age: Optional[int] = None
+    age_months: Optional[int] = None
     gender: Optional[str] = None
     house_number: Optional[str] = None
     village_or_town: Optional[str] = None
     city: Optional[str] = None
+    mandal: Optional[str] = None
+    phc_name: Optional[str] = None
     district: Optional[str] = None
     state: Optional[str] = None
     country: Optional[str] = None
@@ -63,6 +86,15 @@ class PatientUpdate(BaseModel):
     address: Optional[str] = None
     primary_health_issue: Optional[str] = None
     health_issues_list: Optional[List[str]] = None
+    health_issue_categories: Optional[List[str]] = None
+    is_pregnant: Optional[bool] = None
+    pregnancy_month: Optional[int] = None
+    pregnancy_issues: Optional[List[str]] = None
+    anc_visit_count: Optional[int] = None
+    vaccination_status: Optional[str] = None
+    weight_kg: Optional[float] = None
+    height_cm: Optional[float] = None
+    growth_issues: Optional[List[str]] = None
     risk_category: Optional[str] = None
     emergency_contact: Optional[Dict[str, Any]] = None
     medical_history: Optional[Dict[str, Any]] = None
@@ -73,10 +105,13 @@ class PatientOut(BaseModel):
     phone: str
     aadhaar_masked: str
     age: Optional[int] = None
+    age_months: Optional[int] = None
     gender: Optional[str] = None
     house_number: Optional[str] = None
     village_or_town: Optional[str] = None
     city: Optional[str] = None
+    mandal: Optional[str] = None
+    phc_name: Optional[str] = None
     district: Optional[str] = None
     state: Optional[str] = None
     country: Optional[str] = "India"
@@ -84,6 +119,15 @@ class PatientOut(BaseModel):
     address: Optional[str] = None
     primary_health_issue: Optional[str] = None
     health_issues_list: Optional[List[str]] = None
+    health_issue_categories: Optional[List[str]] = None
+    is_pregnant: Optional[bool] = None
+    pregnancy_month: Optional[int] = None
+    pregnancy_issues: Optional[List[str]] = None
+    anc_visit_count: Optional[int] = None
+    vaccination_status: Optional[str] = None
+    weight_kg: Optional[float] = None
+    height_cm: Optional[float] = None
+    growth_issues: Optional[List[str]] = None
     risk_category: Optional[str] = "Green"
     is_scanned: bool = True
     emergency_contact: Optional[Dict[str, Any]] = None

@@ -120,7 +120,11 @@ def login(
             phone=user.phone,
             role=user.role,
             jurisdiction_district=user.jurisdiction_district,
-            jurisdiction_state=user.jurisdiction_state
+            jurisdiction_state=user.jurisdiction_state,
+            jurisdiction_level=user.jurisdiction_level,
+            jurisdiction_block=user.jurisdiction_block,
+            jurisdiction_village=user.jurisdiction_village,
+            jurisdiction_phc=user.jurisdiction_phc
         )
 
     except HTTPException:
