@@ -16,7 +16,8 @@ const Navbar = () => {
       case 'doctor':
         return 'Doctor';
       case 'camp_assistant':
-        return 'Camp Assistant';
+      case 'collector':
+        return 'Assistant/Camp';
       case 'volunteer':
         return 'Village Volunteer';
       case 'higher_authority':

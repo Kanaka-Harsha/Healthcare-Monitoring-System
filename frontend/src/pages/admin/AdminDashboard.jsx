@@ -577,7 +577,7 @@ const AdminDashboard = () => {
               >
                 <option value="all">All Roles</option>
                 <option value="doctor">Doctors</option>
-                <option value="camp_assistant">Camp Assistants</option>
+                <option value="camp_assistant">Assistant/Camp</option>
                 <option value="volunteer">Volunteers</option>
                 <option value="higher_authority">Higher Authorities</option>
                 <option value="admin">Administrators</option>
@@ -630,7 +630,7 @@ const AdminDashboard = () => {
                             u.role === 'admin' ? 'bg-slate-900 text-white border-slate-900' :
                             'bg-slate-100 text-slate-800 border-slate-200'
                           }`}>
-                            {u.role.toUpperCase().replace('_', ' ')}
+                            {u.role === 'camp_assistant' || u.role === 'collector' ? 'ASSISTANT/CAMP' : u.role.toUpperCase().replace('_', ' ')}
                           </span>
                         </td>
                         <td className="p-3 text-slate-600">
@@ -1044,7 +1044,7 @@ const AdminDashboard = () => {
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 text-slate-900 text-xs focus:outline-none focus:border-teal-700"
                 >
                   <option value="doctor">Doctor (Consultations, Prescriptions & Notes)</option>
-                  <option value="camp_assistant">Camp Assistant (Health Checks & BLE Vitals)</option>
+                  <option value="camp_assistant">Assistant/Camp (Health Checks & BLE Vitals)</option>
                   <option value="volunteer">Volunteer (Village Citizen Registration Desk)</option>
                   <option value="higher_authority">Higher Authority (Public Health Analytics Portal)</option>
                   <option value="admin">App Administrator (Full Rights & Audits)</option>

@@ -115,7 +115,7 @@ const CollectorDashboard = () => {
     notify('success', 'Device readings filled into the vitals form.');
   };
 
-  // ── Step 1a: Search existing patient from today's history ───────────────────
+  // ── Step 1a: Search master patient registry (Volunteer entries included) ───
   const handleSearchPatient = async (e) => {
     e.preventDefault();
     const cleanPhone = searchPhone.replace(/\D/g, '').slice(-10);
@@ -127,32 +127,53 @@ const CollectorDashboard = () => {
     setSearchResult(null);
     setShowQuickReg(false);
     try {
-      const res = await api.get('/collector/history');
-      const records = res.data || [];
-      const found = records.find(r => r.patient_phone === cleanPhone);
-      if (found) {
-        setSearchResult(found);
-        notify('success', `Found: ${found.patient_name}. Click "Use This Patient" to continue.`);
-      } else {
-        notify('warning', 'No recent record for this phone number. Use the form below to register and continue.');
-        setShowQuickReg(true);
-        setQrPhone(cleanPhone);
+      // 1. First search master patient registry (includes all citizens registered by Volunteers)
+      const res = await api.get('/collector/patient/search', {
+        params: { phone: cleanPhone }
+      });
+      const patient = res.data;
+      if (patient) {
+        setSearchResult(patient);
+        notify('success', `Found registered citizen: ${patient.full_name}. No need to register again!`);
       }
     } catch (err) {
-      notify('error', extractErrorMessage(err, 'Could not search. Please check your connection.'));
+      // 2. Fallback: check if they exist in history records
+      const foundInHistory = historyRecords.find(r => (r.patient_phone || '').includes(cleanPhone));
+      if (foundInHistory) {
+        setSearchResult({
+          id: foundInHistory.patient_id,
+          full_name: foundInHistory.patient_name,
+          phone: foundInHistory.patient_phone,
+          aadhaar_masked: foundInHistory.patient_aadhaar_masked,
+          systolic_bp: foundInHistory.systolic_bp,
+          diastolic_bp: foundInHistory.diastolic_bp,
+          spo2: foundInHistory.spo2
+        });
+        notify('success', `Found from camp records: ${foundInHistory.patient_name}.`);
+      } else if (err.response?.status === 404) {
+        notify('warning', `No registered citizen found with mobile number ${cleanPhone}. If this is their first camp visit, register them below.`);
+        setShowQuickReg(true);
+        setQrPhone(cleanPhone);
+      } else {
+        notify('error', extractErrorMessage(err, 'Could not complete search. Please check your connection.'));
+      }
     } finally {
       setSearching(false);
     }
   };
 
   const handleUseFoundPatient = () => {
+    const patId = searchResult.id || searchResult.patient_id || null;
+    const patPhone = searchResult.phone || searchResult.patient_phone;
+    const patName = searchResult.full_name || searchResult.patient_name;
+
     setConfirmedPatient({
-      id: searchResult.patient_id || null,
-      phone: searchResult.patient_phone,
-      name: searchResult.patient_name,
+      id: patId,
+      phone: patPhone,
+      name: patName,
     });
     setStep(2);
-    notify('success', `Ready to record vitals for ${searchResult.patient_name}.`);
+    notify('success', `Ready to record vitals for ${patName}.`);
   };
 
   // ── Step 1b: Quick-register patient (then proceed to vitals) ────────────────
@@ -272,10 +293,10 @@ const CollectorDashboard = () => {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
 
       {/* ── Top Banner ──────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded bg-white border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
         <div>
           <span className="text-xs font-semibold px-2 py-0.5 rounded bg-teal-100 text-teal-800">
-            SwasthGrama — Healthcamp Screening Station
+            SwasthGrama — Assistant/Camp Screening Station
           </span>
           <h1 className="text-xl font-bold text-slate-900 mt-1">Record Patient Vitals</h1>
           <p className="text-xs text-slate-600">
@@ -287,7 +308,7 @@ const CollectorDashboard = () => {
           <button
             type="button"
             onClick={() => setIsBluetoothModalOpen(true)}
-            className={`px-3 py-1.5 rounded text-xs font-semibold transition ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm ${
               isBLEConnected
                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                 : 'bg-teal-800 hover:bg-teal-900 text-white'
@@ -300,7 +321,7 @@ const CollectorDashboard = () => {
             <button
               onClick={triggerSync}
               disabled={!isOnline}
-              className="px-3 py-1.5 rounded text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 transition"
             >
               Upload {pendingCount} Saved Record{pendingCount > 1 ? 's' : ''}
             </button>
@@ -317,7 +338,7 @@ const CollectorDashboard = () => {
 
       {/* ── Notifications ──────────────────────────────────────────────────── */}
       {notification && (
-        <div className={`p-3 rounded text-sm font-medium border ${
+        <div className={`p-3.5 rounded-xl text-sm font-medium border shadow-sm ${
           notification.type === 'success' ? 'bg-emerald-50 border-emerald-300 text-emerald-900' :
           notification.type === 'warning' ? 'bg-amber-50 border-amber-300 text-amber-900' :
           'bg-rose-50 border-rose-300 text-rose-900'
@@ -344,7 +365,7 @@ const CollectorDashboard = () => {
 
           {/* ════ STEP 1: Find / Register Patient ════ */}
           {step === 1 && (
-            <div className="bg-white p-5 sm:p-6 rounded border border-slate-200 shadow-sm space-y-5">
+            <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
               <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
                 <div className="w-6 h-6 rounded-full bg-teal-800 text-white flex items-center justify-center text-xs font-bold">1</div>
                 <h2 className="text-sm font-bold text-slate-900">Find the Patient</h2>
@@ -363,42 +384,79 @@ const CollectorDashboard = () => {
                       onChange={(e) => setSearchPhone(e.target.value)}
                       placeholder="Enter 10-digit mobile number"
                       maxLength={10}
-                      className="flex-1 px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:border-teal-700 focus:outline-none"
+                      className="flex-1 px-3 py-2 rounded-lg bg-white border border-slate-300 text-slate-900 text-sm focus:border-teal-700 focus:outline-none shadow-sm"
                     />
                     <button
                       type="submit"
                       disabled={searching}
-                      className="px-4 py-2 rounded bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold transition disabled:opacity-60"
+                      className="px-4 py-2 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold transition disabled:opacity-60 shadow-sm"
                     >
                       {searching ? 'Searching...' : 'Find Patient'}
                     </button>
                   </div>
                   <p className="text-[11px] text-slate-500 mt-1">
-                    If the patient visited a previous camp, their record will appear. Otherwise, use the form below to register them.
+                    Enter the citizen's mobile number. Citizens registered by village volunteers will be located immediately.
                   </p>
                 </div>
               </form>
 
               {/* Found patient card */}
               {searchResult && (
-                <div className="p-4 rounded bg-emerald-50 border border-emerald-200 space-y-3">
-                  <p className="text-xs font-bold text-emerald-800 uppercase tracking-wide">Patient Found</p>
-                  <div className="flex items-center justify-between">
+                <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-300 space-y-3 shadow-sm">
+                  <div className="flex items-center justify-between border-b border-emerald-200 pb-2">
+                    <span className="text-xs font-bold text-emerald-800 flex items-center gap-1.5 uppercase tracking-wide">
+                      <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+                      ✓ Citizen Found in Master Village Registry
+                    </span>
+                    <span className="text-[11px] font-semibold text-teal-800 px-2 py-0.5 rounded-full bg-emerald-100 border border-emerald-200">
+                      Already Enrolled
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
-                      <p className="text-sm font-bold text-slate-900">{searchResult.patient_name}</p>
-                      <p className="text-xs text-slate-600">📞 +91 {searchResult.patient_phone}</p>
-                      {searchResult.systolic_bp && (
-                        <p className="text-xs text-slate-500 mt-1">
-                          Last Visit BP: {searchResult.systolic_bp}/{searchResult.diastolic_bp} mmHg &nbsp;•&nbsp;
-                          SpO₂: {searchResult.spo2}%
+                      <p className="text-base font-bold text-slate-900">{searchResult.full_name || searchResult.patient_name}</p>
+                      <p className="text-xs text-slate-600 font-mono mt-0.5">📞 +91 {searchResult.phone || searchResult.patient_phone}</p>
+                      {searchResult.aadhaar_masked && (
+                        <p className="text-[11px] text-slate-500 font-mono mt-0.5">Aadhaar: {searchResult.aadhaar_masked}</p>
+                      )}
+                    </div>
+
+                    <div className="space-y-1 text-slate-700">
+                      {(searchResult.age || searchResult.gender) && (
+                        <p className="text-xs font-medium">
+                          <strong>Demographics:</strong> {searchResult.age ? `${searchResult.age} yrs` : ''} {searchResult.gender ? `• ${searchResult.gender}` : ''}
+                        </p>
+                      )}
+                      {(searchResult.village_or_town || searchResult.district) && (
+                        <p className="text-xs text-slate-600">
+                          <strong>Location:</strong> {searchResult.village_or_town ? `${searchResult.village_or_town}, ` : ''}{searchResult.district || 'Andhra Pradesh'}
+                        </p>
+                      )}
+                      {searchResult.primary_health_issue && (
+                        <p className="text-xs text-teal-900 font-medium">
+                          <strong>Health Complaint:</strong> {searchResult.primary_health_issue}
                         </p>
                       )}
                     </div>
+                  </div>
+
+                  {searchResult.systolic_bp && (
+                    <div className="text-[11px] text-slate-600 bg-white/70 p-2 rounded-lg border border-emerald-100">
+                      <strong>Previous Camp Vitals:</strong> BP {searchResult.systolic_bp}/{searchResult.diastolic_bp} mmHg &nbsp;•&nbsp; Pulse: {searchResult.heart_rate || '--'} BPM &nbsp;•&nbsp; SpO₂: {searchResult.spo2}%
+                    </div>
+                  )}
+
+                  <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-emerald-200">
+                    <p className="text-[11px] text-emerald-800 font-medium">
+                      ✓ Registered citizen. No need to re-register:
+                    </p>
                     <button
                       onClick={handleUseFoundPatient}
-                      className="px-4 py-2 rounded bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold transition"
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold shadow transition flex items-center justify-center gap-1.5"
                     >
-                      Use This Patient →
+                      <span>Select Patient & Record Vitals</span>
+                      <span>→</span>
                     </button>
                   </div>
                 </div>

@@ -3,30 +3,41 @@ import api, { extractErrorMessage } from '../../services/api';
 import { useSync } from '../../context/SyncContext';
 
 const COMMON_STATES = [
-  'Karnataka',
-  'Maharashtra',
-  'Tamil Nadu',
-  'Telangana',
-  'Andhra Pradesh',
-  'Kerala',
-  'Uttar Pradesh',
-  'Madhya Pradesh',
-  'Rajasthan',
-  'Gujarat',
-  'Bihar',
-  'West Bengal',
-  'Odisha',
-  'Punjab',
-  'Haryana',
-  'Assam'
+  'Andhra Pradesh'
+];
+
+const ANDHRA_PRADESH_DISTRICTS = [
+  'Alluri Sitharama Raju',
+  'Anakapalli',
+  'Ananthapuramu',
+  'Annamayya',
+  'Bapatla',
+  'Chittoor',
+  'Dr. B.R. Ambedkar Konaseema',
+  'East Godavari',
+  'Eluru',
+  'Guntur',
+  'Kakinada',
+  'Krishna',
+  'Kurnool',
+  'Nandyal',
+  'NTR',
+  'Palnadu',
+  'Parvathipuram Manyam',
+  'Prakasam',
+  'SPSR Nellore',
+  'Sri Sathya Sai',
+  'Srikakulam',
+  'Tirupati',
+  'Visakhapatnam',
+  'Vizianagaram',
+  'West Godavari',
+  'YSR Kadapa',
+  'Other'
 ];
 
 const COMMON_DISTRICTS_BY_STATE = {
-  'Karnataka': ['Mysuru', 'Bengaluru Urban', 'Bengaluru Rural', 'Mandya', 'Hassan', 'Belagavi', 'Tumakuru', 'Ballari', 'Shivamogga', 'Davanagere', 'Other'],
-  'Maharashtra': ['Pune', 'Mumbai Suburban', 'Nagpur', 'Nashik', 'Thane', 'Kolhapur', 'Solapur', 'Aurangabad', 'Other'],
-  'Tamil Nadu': ['Chennai', 'Coimbatore', 'Madurai', 'Tiruchirappalli', 'Salem', 'Tirunelveli', 'Other'],
-  'Telangana': ['Hyderabad', 'Rangareddy', 'Warangal', 'Nizamabad', 'Khammam', 'Karimnagar', 'Other'],
-  'Andhra Pradesh': ['Visakhapatnam', 'Vijayawada', 'Guntur', 'Kurnool', 'Nellore', 'Tirupati', 'Other']
+  'Andhra Pradesh': ANDHRA_PRADESH_DISTRICTS
 };
 
 const REPORT_TYPE_OPTIONS = [
@@ -86,8 +97,8 @@ const UserRegistrationPage = () => {
   const [houseNumber, setHouseNumber] = useState('');
   const [villageOrTown, setVillageOrTown] = useState('');
   const [city, setCity] = useState('');
-  const [selectedState, setSelectedState] = useState('Karnataka');
-  const [selectedDistrict, setSelectedDistrict] = useState('Mysuru');
+  const [selectedState, setSelectedState] = useState('Andhra Pradesh');
+  const [selectedDistrict, setSelectedDistrict] = useState('Visakhapatnam');
   const [customDistrict, setCustomDistrict] = useState('');
   const [pincode, setPincode] = useState('');
 
@@ -568,7 +579,7 @@ const UserRegistrationPage = () => {
                   required
                   value={villageOrTown}
                   onChange={(e) => setVillageOrTown(e.target.value)}
-                  placeholder="e.g. Bilikere"
+                  placeholder="e.g. Pendurthi or Madhurawada"
                   className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium"
                 />
               </div>
@@ -579,7 +590,7 @@ const UserRegistrationPage = () => {
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g. Hunsur"
+                  placeholder="e.g. Visakhapatnam or Guntur"
                   className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium"
                 />
               </div>

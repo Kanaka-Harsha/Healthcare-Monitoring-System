@@ -69,7 +69,7 @@ const SignupPage = () => {
         <div className="text-center space-y-1">
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Staff Account Registration</h2>
           <p className="text-xs text-slate-500">
-            For medical doctors and camp assistants joining SwasthGrama.
+            For medical doctors and Assistant/Camp staff joining SwasthGrama.
           </p>
         </div>
 
@@ -122,7 +122,7 @@ const SignupPage = () => {
                 className="w-full text-xs px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-semibold text-slate-800"
               >
                 <option value="doctor">Doctor</option>
-                <option value="camp_assistant">Camp Assistant</option>
+                <option value="camp_assistant">Assistant/Camp</option>
               </select>
             </div>
           </div>

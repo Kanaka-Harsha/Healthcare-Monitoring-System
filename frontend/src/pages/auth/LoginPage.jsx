@@ -194,7 +194,7 @@ const LoginPage = () => {
                   onClick={() => autofillUser('camp_assistant')}
                   className="px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 font-semibold text-blue-900 border border-blue-200 text-center"
                 >
-                  Camp Assistant
+                  Assistant/Camp
                 </button>
                 <button
                   type="button"
@@ -208,7 +208,7 @@ const LoginPage = () => {
 
             <div className="text-center pt-2">
               <p className="text-[11px] text-slate-500">
-                Are you a Doctor or Assistant without an account?{' '}
+                Are you a Doctor or Assistant/Camp without an account?{' '}
                 <Link to="/signup" className="font-bold text-teal-800 hover:underline">
                   Sign Up Here
                 </Link>
