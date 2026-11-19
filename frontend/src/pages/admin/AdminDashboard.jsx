@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api, { extractErrorMessage } from '../../services/api';
+import HigherAuthorityAnalyticsPage from '../analytics/HigherAuthorityAnalyticsPage';
 
 const CHRONIC_CONDITIONS_LIST = [
   'Hypertension (High Blood Pressure)',
@@ -14,10 +15,6 @@ const CHRONIC_CONDITIONS_LIST = [
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'users' | 'patients' | 'vitalsLogs' | 'devices' | 'audits'
   
-  // Analytics State
-  const [analytics, setAnalytics] = useState(null);
-  const [loading, setLoading] = useState(true);
-
   // Users Management State
   const [users, setUsers] = useState([]);
   const [userRoleFilter, setUserRoleFilter] = useState('all');
@@ -78,24 +75,12 @@ const AdminDashboard = () => {
   const [loadingVitals, setLoadingVitals] = useState(false);
 
   useEffect(() => {
-    fetchAnalytics();
     if (activeTab === 'users') fetchUsers();
     if (activeTab === 'devices') { fetchDevices(); fetchUsers(); }
     if (activeTab === 'audits') fetchAuditLogs();
     if (activeTab === 'patients') fetchPatients();
     if (activeTab === 'vitalsLogs') fetchVitalsLogs();
   }, [activeTab]);
-
-  const fetchAnalytics = async () => {
-    try {
-      const res = await api.get('/admin/analytics/overview');
-      setAnalytics(res.data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchUsers = async () => {
     try {
@@ -488,82 +473,8 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      {/* TAB 1: System Analytics Overview */}
-      {activeTab === 'overview' && analytics && (
-        <div className="space-y-5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-gradient-to-r from-teal-900 to-slate-900 text-white shadow-sm gap-3">
-            <div>
-              <h3 className="text-sm font-bold">Public Health & Disease Surveillance Analytics Portal</h3>
-              <p className="text-xs text-teal-200 mt-0.5">Andhra Pradesh health screening and community trends.</p>
-            </div>
-            <a
-              href="/analytics"
-              className="px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold transition shadow-sm flex items-center gap-1.5 self-start sm:self-auto"
-            >
-              <span>Launch Analytics Portal &rarr;</span>
-            </a>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-              <span className="text-xs text-slate-500 font-semibold block">Total Screenings</span>
-              <div className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">{analytics.total_screenings}</div>
-              <p className="text-[11px] text-teal-700 mt-0.5">{analytics.recent_screenings_count_24h} in past 24 hrs</p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-              <span className="text-xs text-slate-500 font-semibold block">Registered Patients</span>
-              <div className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">{analytics.total_patients}</div>
-              <p className="text-[11px] text-slate-600 mt-0.5">Medical Profiles Saved</p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-              <span className="text-xs text-slate-500 font-semibold block">Vitals Flags</span>
-              <div className="text-2xl sm:text-3xl font-bold text-rose-800 mt-1">{analytics.vitals_anomalies_count}</div>
-              <p className="text-[11px] text-rose-700 mt-0.5">High BP / SpO2 Alert</p>
-            </div>
-
-            <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-              <span className="text-xs text-slate-500 font-semibold block">Authorized Staff</span>
-              <div className="text-2xl sm:text-3xl font-bold text-slate-900 mt-1">
-                {analytics.total_doctors + analytics.total_collectors}
-              </div>
-              <p className="text-[11px] text-slate-600 mt-0.5">
-                {analytics.total_doctors} Doctors • {analytics.total_collectors} Field Staff
-              </p>
-            </div>
-          </div>
-
-          {/* Quick Audits List */}
-          <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm space-y-3">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900">Recent Security & Login Audits</h3>
-              <button
-                onClick={() => setActiveTab('audits')}
-                className="text-xs text-teal-800 hover:underline font-semibold"
-              >
-                View Full Logs &rarr;
-              </button>
-            </div>
-
-            <div className="divide-y divide-slate-100">
-              {analytics.recent_audit_logs.map((log) => (
-                <div key={log.id} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-800 font-semibold uppercase">
-                      {log.action}
-                    </span>
-                    <span className="text-slate-800 font-medium">{log.details}</span>
-                  </div>
-                  <span className="text-slate-500 font-mono text-[11px]">
-                    {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* System analytics opens by default inside the admin console. */}
+      {activeTab === 'overview' && <HigherAuthorityAnalyticsPage />}
 
       {/* TAB 2: Staff & Doctor Management */}
       {activeTab === 'users' && (

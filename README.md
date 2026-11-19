@@ -49,14 +49,17 @@ A secure, offline-first, production-ready healthcare telemetry system designed f
 
 ---
 
-## ⚡ Default Seed Accounts
+## ⚡ Default Login Accounts
 
-| Role | Email / Username | Phone | Password |
-| :--- | :--- | :--- | :--- |
-| **Admin** | `admin@healthcare.local` | `9999999999` | `Admin@Healthcare2026` |
-| **Doctor** | `doctor@healthcare.local` | `9876543210` | `Doctor@123` |
-| **Data Collector** | `collector@healthcare.local` | `9123456780` | `Collector@123` |
-| **Patient** | *(Uses Phone Number)* | *(e.g. `9876543210`)* | *(Uses 6-digit OTP)* |
+| Account | Username | Password |
+| :--- | :--- | :--- |
+| **Real App Admin** | `admin` | `admin` |
+| Test Doctor | `testdoctor` | `testdoctor` |
+| Test Assistant/Camp | `testassistant` | `testassistant` |
+| Test Volunteer | `testvolunteer` | `testvolunteer` |
+| Test Higher Authority | `testauthority` | `testauthority` |
+
+The admin is the real application administrator, not a test user. Every seeded staff test account has `test` in both its username and password. Set `DEFAULT_ADMIN_PASSWORD` in the environment to use a different initial admin password.
 
 ---
 

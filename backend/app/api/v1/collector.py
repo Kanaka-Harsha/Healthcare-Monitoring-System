@@ -147,8 +147,9 @@ def register_or_get_patient(
 
         # Health issue
         if payload.primary_health_issue: patient.primary_health_issue = payload.primary_health_issue
-        if payload.health_issues_list: patient.health_issues_list = payload.health_issues_list
-        for field in ("age_months", "mandal", "phc_name", "is_pregnant", "pregnancy_month", "pregnancy_issues", "anc_visit_count", "vaccination_status", "weight_kg", "height_cm", "growth_issues", "health_issue_categories"):
+        if "health_issues_list" in payload.model_fields_set:
+            patient.health_issues_list = payload.health_issues_list
+        for field in ("age_months", "age_days", "date_of_birth", "mandal", "phc_name", "is_pregnant", "pregnancy_month", "pregnancy_issues", "anc_visit_count", "vaccination_status", "vaccination_records", "antenatal_care", "newborn_details", "health_assessed", "weight_kg", "height_cm", "growth_issues", "health_issue_categories"):
             if field in payload.model_fields_set:
                 setattr(patient, field, getattr(payload, field))
         if payload.emergency_contact: patient.emergency_contact = payload.emergency_contact
@@ -197,6 +198,8 @@ def register_or_get_patient(
         aadhaar_masked=aadhaar_m,
         aadhaar_hash=aadhaar_h,
         age=payload.age,
+        age_days=payload.age_days,
+        date_of_birth=payload.date_of_birth,
         gender=payload.gender,
         house_number=payload.house_number,
         village_or_town=payload.village_or_town,
@@ -204,14 +207,18 @@ def register_or_get_patient(
         mandal=payload.mandal,
         phc_name=payload.phc_name,
         age_months=payload.age_months,
+        health_assessed=payload.health_assessed,
         is_pregnant=payload.is_pregnant,
         pregnancy_month=payload.pregnancy_month,
         pregnancy_issues=payload.pregnancy_issues,
         anc_visit_count=payload.anc_visit_count,
         vaccination_status=payload.vaccination_status,
+        vaccination_records=payload.vaccination_records,
+        antenatal_care=payload.antenatal_care,
         weight_kg=payload.weight_kg,
         height_cm=payload.height_cm,
         growth_issues=payload.growth_issues,
+        newborn_details=payload.newborn_details,
         health_issue_categories=payload.health_issue_categories,
         district=payload.district,
         state=payload.state,
@@ -313,7 +320,7 @@ def batch_sync_offline_patients(
                 if item.pincode: patient.pincode = item.pincode
                 patient.address = compiled_address
                 if item.primary_health_issue: patient.primary_health_issue = item.primary_health_issue
-                for field in ("age_months", "mandal", "phc_name", "is_pregnant", "pregnancy_month", "pregnancy_issues", "anc_visit_count", "vaccination_status", "weight_kg", "height_cm", "growth_issues", "health_issue_categories"):
+                for field in ("age_months", "age_days", "date_of_birth", "mandal", "phc_name", "is_pregnant", "pregnancy_month", "pregnancy_issues", "anc_visit_count", "vaccination_status", "vaccination_records", "antenatal_care", "newborn_details", "health_assessed", "weight_kg", "height_cm", "growth_issues", "health_issue_categories", "health_issues_list"):
                     if field in item.model_fields_set:
                         setattr(patient, field, getattr(item, field))
                 patient.is_scanned = True
@@ -325,6 +332,8 @@ def batch_sync_offline_patients(
                     aadhaar_masked=aadhaar_m,
                     aadhaar_hash=aadhaar_h,
                     age=item.age,
+                    age_days=item.age_days,
+                    date_of_birth=item.date_of_birth,
                     gender=item.gender,
                     house_number=item.house_number,
                     village_or_town=item.village_or_town,
@@ -332,14 +341,18 @@ def batch_sync_offline_patients(
                     mandal=item.mandal,
                     phc_name=item.phc_name,
                     age_months=item.age_months,
+                    health_assessed=item.health_assessed,
                     is_pregnant=item.is_pregnant,
                     pregnancy_month=item.pregnancy_month,
                     pregnancy_issues=item.pregnancy_issues,
                     anc_visit_count=item.anc_visit_count,
                     vaccination_status=item.vaccination_status,
+                    vaccination_records=item.vaccination_records,
+                    antenatal_care=item.antenatal_care,
                     weight_kg=item.weight_kg,
                     height_cm=item.height_cm,
                     growth_issues=item.growth_issues,
+                    newborn_details=item.newborn_details,
                     health_issue_categories=item.health_issue_categories,
                     district=item.district,
                     state=item.state,

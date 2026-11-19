@@ -37,7 +37,7 @@ def run_tests():
     print("\n[1] Testing Admin Login (Username & Password)...")
     res = requests.post(f"{BASE_URL}/auth/login", json={
         "username": "admin",
-        "password": "Admin@Healthcare2026"
+        "password": "admin"
     })
     assert res.status_code == 200, f"Admin login failed: {res.text}"
     admin_data = res.json()
@@ -47,8 +47,8 @@ def run_tests():
     # 2. Volunteer Login
     print("\n[2] Testing Volunteer Login (Username & Password)...")
     res = requests.post(f"{BASE_URL}/auth/login", json={
-        "username": "volunteer_maya",
-        "password": "Volunteer@123"
+        "username": "testvolunteer",
+        "password": "testvolunteer"
     })
     assert res.status_code == 200, f"Volunteer login failed: {res.text}"
     volunteer_data = res.json()
@@ -132,8 +132,8 @@ def run_tests():
     # 6. Camp Assistant Ingests Vitals -> Auto Risk Computation
     print("\n[6] Testing Camp Assistant Ingesting Vitals with Auto Risk Triaging...")
     res = requests.post(f"{BASE_URL}/auth/login", json={
-        "username": "assistant_alex",
-        "password": "Assistant@123"
+        "username": "testassistant",
+        "password": "testassistant"
     })
     assert res.status_code == 200
     assistant_token = res.json()["access_token"]
@@ -157,8 +157,8 @@ def run_tests():
     # 7. Higher Authority Analytics Query (Jurisdiction Filtered, Zero PII)
     print("\n[7] Testing Higher Authority Analytics Portal (District Collector)...")
     res = requests.post(f"{BASE_URL}/auth/login", json={
-        "username": "collector_rao",
-        "password": "Authority@123"
+        "username": "testauthority",
+        "password": "testauthority"
     })
     assert res.status_code == 200
     authority_token = res.json()["access_token"]

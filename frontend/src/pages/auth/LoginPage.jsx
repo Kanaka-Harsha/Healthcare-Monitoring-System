@@ -60,23 +60,19 @@ const LoginPage = () => {
     }
   };
 
-  // Quick-Fill Demo Logins for Fast Review
+  // Quick-fill the real admin account or explicitly marked test accounts.
   const autofillUser = (role) => {
-    if (role === 'admin') {
-      setStaffUsername('admin');
-      setStaffPassword('Admin@Healthcare2026');
-    } else if (role === 'doctor') {
-      setStaffUsername('dr_sarah');
-      setStaffPassword('Doctor@123');
-    } else if (role === 'camp_assistant') {
-      setStaffUsername('assistant_alex');
-      setStaffPassword('Assistant@123');
-    } else if (role === 'volunteer') {
-      setStaffUsername('volunteer_maya');
-      setStaffPassword('Volunteer@123');
-    } else if (role === 'higher_authority') {
-      setStaffUsername('collector_rao');
-      setStaffPassword('Authority@123');
+    const credentials = {
+      admin: ['admin', 'Admin@Healthcare2026'],
+      doctor: ['testdoctor', 'testdoctor'],
+      camp_assistant: ['testassistant', 'testassistant'],
+      volunteer: ['testvolunteer', 'testvolunteer'],
+      higher_authority: ['testauthority', 'testauthority'],
+    };
+    const [username, password] = credentials[role] || [];
+    if (username) {
+      setStaffUsername(username);
+      setStaffPassword(password);
     }
   };
 
@@ -137,7 +133,7 @@ const LoginPage = () => {
                 required
                 value={staffUsername}
                 onChange={(e) => setStaffUsername(e.target.value)}
-                placeholder="e.g. admin or dr_sarah"
+                placeholder="e.g. admin or testdoctor"
                 className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium"
               />
             </div>
@@ -162,10 +158,10 @@ const LoginPage = () => {
               {loading ? 'Checking credentials...' : 'Sign In'}
             </button>
 
-            {/* Quick Demo Fill Buttons */}
+            {/* Quick Login Buttons */}
             <div className="pt-2 border-t border-slate-100">
               <span className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center mb-2">
-                Quick Test Credentials
+                Quick Login Options
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-[10px]">
                 <button
@@ -173,35 +169,35 @@ const LoginPage = () => {
                   onClick={() => autofillUser('admin')}
                   className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 font-semibold text-slate-800 text-center"
                 >
-                  App Admin
+                  Admin
                 </button>
                 <button
                   type="button"
                   onClick={() => autofillUser('higher_authority')}
                   className="px-2 py-1 rounded bg-purple-50 hover:bg-purple-100 font-semibold text-purple-900 border border-purple-200 text-center"
                 >
-                  Higher Authority
+                  Test Authority
                 </button>
                 <button
                   type="button"
                   onClick={() => autofillUser('doctor')}
                   className="px-2 py-1 rounded bg-teal-50 hover:bg-teal-100 font-semibold text-teal-900 border border-teal-200 text-center"
                 >
-                  Doctor
+                  Test Doctor
                 </button>
                 <button
                   type="button"
                   onClick={() => autofillUser('camp_assistant')}
                   className="px-2 py-1 rounded bg-blue-50 hover:bg-blue-100 font-semibold text-blue-900 border border-blue-200 text-center"
                 >
-                  Assistant/Camp
+                  Test Assistant/Camp
                 </button>
                 <button
                   type="button"
                   onClick={() => autofillUser('volunteer')}
                   className="px-2 py-1 rounded bg-emerald-50 hover:bg-emerald-100 font-semibold text-emerald-900 border border-emerald-200 text-center"
                 >
-                  Volunteer
+                  Test Volunteer
                 </button>
               </div>
             </div>

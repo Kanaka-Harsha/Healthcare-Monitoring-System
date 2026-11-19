@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     # Seed Admin
     DEFAULT_ADMIN_EMAIL: str = "admin@healthcare.local"
     DEFAULT_ADMIN_PHONE: str = "9999999999"
-    DEFAULT_ADMIN_PASSWORD: str = "Admin@Healthcare2026"
+    DEFAULT_ADMIN_PASSWORD: str = "admin"
 
     class Config:
         env_file = os.path.join(Path(__file__).resolve().parent.parent.parent, ".env")

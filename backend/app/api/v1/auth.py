@@ -10,10 +10,10 @@ from app.core.logger import server_logger
 from app.core.security import verify_password, create_access_token, get_password_hash, hash_aadhaar, mask_aadhaar
 from app.models.user import User
 from app.models.patient import Patient
-from app.schemas.auth import Token, LoginRequest, PatientLoginRequest
+from app.schemas.auth import Token, LoginRequest, PatientLoginRequest, ChangePasswordRequest
 from app.schemas.user import UserCreate
 from app.schemas.patient import PatientCreate
-from app.api.deps import log_audit_event
+from app.api.deps import get_current_user, log_audit_event
 
 router = APIRouter()
 
@@ -135,6 +135,38 @@ def login(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Unable to sign in at the moment. Please try again shortly."
         )
+
+@router.post("/change-password")
+def change_password(
+    payload: ChangePasswordRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Change the signed-in account password after verifying its current password."""
+    if not current_user.password_hash or not verify_password(payload.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="The current password is not correct."
+        )
+    if verify_password(payload.new_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Choose a new password that is different from the current one."
+        )
+
+    current_user.password_hash = get_password_hash(payload.new_password)
+    db.commit()
+    log_audit_event(
+        db=db,
+        action="PASSWORD_CHANGED",
+        user_id=current_user.id,
+        resource_type="auth",
+        details=f"Password changed for account {current_user.username}",
+        ip_address=request.client.host if request and request.client else None
+    )
+    return {"success": True, "message": "Your password has been changed."}
+
 
 @router.post("/signup/staff", response_model=Token)
 def signup_staff(

@@ -28,20 +28,22 @@ def get_analytics_overview(
     current_user: User = Depends(admin_only)
 ):
     """
-    Get aggregated population health statistics, screening metrics, and audit summary.
+    Get Andhra Pradesh population and screening metrics. Security logs are available through the separate audit-log endpoint.
     """
-    total_patients = db.query(Patient).count()
-    total_screenings = db.query(VitalsRecord).count()
+    ap_patients = db.query(Patient).filter(Patient.state.ilike("Andhra Pradesh"))
+    total_patients = ap_patients.count()
+    ap_vitals = db.query(VitalsRecord).join(Patient, VitalsRecord.patient_id == Patient.id).filter(Patient.state.ilike("Andhra Pradesh"))
+    total_screenings = ap_vitals.count()
     total_doctors = db.query(User).filter(User.role == "doctor").count()
     total_collectors = db.query(User).filter(User.role == "collector").count()
     total_devices = db.query(Device).count()
 
     # 24h count
     cutoff_24h = datetime.now(timezone.utc) - timedelta(hours=24)
-    recent_screenings_24h = db.query(VitalsRecord).filter(VitalsRecord.recorded_at >= cutoff_24h).count()
+    recent_screenings_24h = ap_vitals.filter(VitalsRecord.recorded_at >= cutoff_24h).count()
 
     # Vitals anomalies (Hypertension Stage 2 or Low SpO2)
-    anomalies_count = db.query(VitalsRecord).filter(
+    anomalies_count = ap_vitals.filter(
         or_(
             VitalsRecord.spo2 < 92,
             VitalsRecord.systolic_bp >= 140,
@@ -53,7 +55,7 @@ def get_analytics_overview(
 
     # Gender breakdown
     gender_counts = (
-        db.query(Patient.gender, func.count(Patient.id))
+        ap_patients.with_entities(Patient.gender, func.count(Patient.id))
         .group_by(Patient.gender)
         .all()
     )
@@ -61,30 +63,6 @@ def get_analytics_overview(
     for g, count in gender_counts:
         gender_map[g or "Unspecified"] = count
 
-    # Recent 10 audit logs
-    audit_records = (
-        db.query(AuditLog)
-        .order_by(desc(AuditLog.created_at))
-        .limit(10)
-        .all()
-    )
-    
-    formatted_audits = []
-    for a in audit_records:
-        formatted_audits.append(
-            AuditLogOut(
-                id=a.id,
-                user_id=a.user_id,
-                user_name=a.user.full_name if a.user else "System",
-                user_role=a.user.role if a.user else None,
-                action=a.action,
-                resource_type=a.resource_type,
-                resource_id=a.resource_id,
-                details=a.details,
-                ip_address=a.ip_address,
-                created_at=a.created_at
-            )
-        )
 
     return AnalyticsOverviewOut(
         total_patients=total_patients,
@@ -94,8 +72,7 @@ def get_analytics_overview(
         total_devices=total_devices,
         recent_screenings_count_24h=recent_screenings_24h,
         vitals_anomalies_count=anomalies_count,
-        screenings_by_gender=gender_map,
-        recent_audit_logs=formatted_audits
+        screenings_by_gender=gender_map
     )
 
 @router.get("/users", response_model=List[UserOut])
@@ -462,10 +439,27 @@ def admin_create_patient(
             aadhaar_masked=aadhaar_m,
             aadhaar_hash=aadhaar_h,
             age=payload.age,
+            age_months=payload.age_months,
+            age_days=payload.age_days,
+            date_of_birth=payload.date_of_birth,
             gender=payload.gender,
             address=payload.address,
             emergency_contact=payload.emergency_contact,
-            medical_history=payload.medical_history
+            medical_history=payload.medical_history,
+            health_issues_list=payload.health_issues_list,
+            health_issue_categories=payload.health_issue_categories,
+            health_assessed=payload.health_assessed,
+            is_pregnant=payload.is_pregnant,
+            pregnancy_month=payload.pregnancy_month,
+            pregnancy_issues=payload.pregnancy_issues,
+            anc_visit_count=payload.anc_visit_count,
+            vaccination_status=payload.vaccination_status,
+            vaccination_records=payload.vaccination_records,
+            antenatal_care=payload.antenatal_care,
+            newborn_details=payload.newborn_details,
+            weight_kg=payload.weight_kg,
+            height_cm=payload.height_cm,
+            growth_issues=payload.growth_issues
         )
         db.add(patient)
         db.flush()

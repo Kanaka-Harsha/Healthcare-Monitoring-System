@@ -46,4 +46,3 @@ class AnalyticsOverviewOut(BaseModel):
     recent_screenings_count_24h: int
     vitals_anomalies_count: int
     screenings_by_gender: Dict[str, int]
-    recent_audit_logs: List[AuditLogOut]

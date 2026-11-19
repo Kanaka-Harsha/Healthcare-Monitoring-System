@@ -4,7 +4,7 @@ from app.core.logger import db_logger
 from app.db.session import engine, SessionLocal, Base
 from app.models import User, Patient, VitalsRecord, DoctorAccessSession, ClinicalNote, Device, AuditLog, MedicalReport
 from app.core.config import settings
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, verify_password
 
 def reset_and_clean_database():
     """
@@ -59,12 +59,18 @@ def init_db(reset: bool = False):
                 conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS mandal VARCHAR(150);"))
                 conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS phc_name VARCHAR(150);"))
                 conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS age_months INTEGER;"))
+                conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS age_days INTEGER;"))
+                conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS date_of_birth DATE;"))
                 conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS health_issue_categories JSON;"))
+                conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS health_assessed BOOLEAN;"))
                 conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS is_pregnant BOOLEAN;"))
                 conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS pregnancy_month INTEGER;"))
                 conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS pregnancy_issues JSON;"))
                 conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS anc_visit_count INTEGER;"))
                 conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS vaccination_status VARCHAR(40);"))
+                conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS vaccination_records JSON;"))
+                conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS antenatal_care JSON;"))
+                conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS newborn_details JSON;"))
                 conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS weight_kg FLOAT;"))
                 conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS height_cm FLOAT;"))
                 conn.execute(text("ALTER TABLE patients ADD COLUMN IF NOT EXISTS growth_issues JSON;"))
@@ -95,86 +101,56 @@ def init_db(reset: bool = False):
                 email="admin@healthcare.local",
                 phone="9999999999",
                 role="admin",
-                password_hash=get_password_hash("Admin@Healthcare2026"),
+                password_hash=get_password_hash(settings.DEFAULT_ADMIN_PASSWORD),
                 is_active=True
             )
             db.add(admin)
             db.commit()
-            db_logger.info("[ADMIN] Fresh App Admin created: username=admin")
-        
-        # 2. Seed Demo Doctor
-        demo_doctor = db.query(User).filter(User.username == "dr_sarah").first()
-        if not demo_doctor:
-            doctor = User(
-                username="dr_sarah",
-                full_name="Dr. Sarah Jenkins (Cardiologist)",
-                email="doctor@healthcare.local",
-                phone="9876543210",
-                role="doctor",
-                password_hash=get_password_hash("Doctor@123"),
-                is_active=True
-            )
-            db.add(doctor)
-            db.commit()
-            db_logger.info("[DOCTOR] Fresh Doctor created: username=dr_sarah")
-
-        # 3. Seed Demo Assistant/Camp
-        demo_assistant = db.query(User).filter(User.username == "assistant_alex").first()
-        if not demo_assistant:
-            assistant = User(
-                username="assistant_alex",
-                full_name="Alex Turner (Assistant/Camp)",
-                email="assistant@healthcare.local",
-                phone="9123456780",
-                role="camp_assistant",
-                password_hash=get_password_hash("Assistant@123"),
-                is_active=True
-            )
-            db.add(assistant)
-            db.commit()
-            db_logger.info("[ASSISTANT] Fresh Assistant/Camp created: username=assistant_alex")
+            db_logger.info("[ADMIN] Real App Admin created: username=admin")
         else:
-            demo_assistant.full_name = "Alex Turner (Assistant/Camp)"
-            db.commit()
+            # Upgrade only the former seeded password; preserve any password the real admin chose later.
+            if not admin.password_hash or verify_password("Admin@Healthcare2026", admin.password_hash):
+                admin.password_hash = get_password_hash(settings.DEFAULT_ADMIN_PASSWORD)
+                db.commit()
 
-        # 4. Seed Demo Volunteer (Village Level)
-        demo_volunteer = db.query(User).filter(User.username == "volunteer_maya").first()
-        if not demo_volunteer:
-            volunteer = User(
-                username="volunteer_maya",
-                full_name="Maya Devi (Village Volunteer)",
-                email="volunteer@healthcare.local",
-                phone="9000000001",
-                role="volunteer",
-                password_hash=get_password_hash("Volunteer@123"),
-                is_active=True
-            )
-            db.add(volunteer)
-            db.commit()
-            db_logger.info("[VOLUNTEER] Fresh Volunteer created: username=volunteer_maya")
+        def ensure_test_account(old_username, username, full_name, email, phone, role, password, **scope):
+            account = db.query(User).filter(User.username == username).first()
+            legacy = db.query(User).filter(User.username == old_username).first() if old_username != username else None
+            migrated_legacy = account is None and legacy is not None
+            if account is None:
+                account = legacy or User()
+                db.add(account)
+            elif legacy is not None and legacy.id != account.id:
+                # Keep any duplicate former demo login visibly marked as a test account.
+                legacy_name = f"{old_username}_test_legacy"
+                if db.query(User).filter(User.username == legacy_name).first():
+                    legacy_name = f"{old_username}_test_legacy_{str(legacy.id)[:8]}"
+                legacy.username = legacy_name
+                legacy.password_hash = get_password_hash(legacy_name)
+                legacy.full_name = f"Test legacy account - {legacy.full_name}"
 
-        # 5. Seed Demo Higher Authority (District Collector)
-        demo_authority = db.query(User).filter(User.username == "collector_rao").first()
-        if not demo_authority:
-            authority = User(
-                username="collector_rao",
-                full_name="Dr. K. S. Rao, IAS (District Collector)",
-                email="collector@healthcare.local",
-                phone="9111111111",
-                role="higher_authority",
-                jurisdiction_level="district",
-                jurisdiction_state="Andhra Pradesh",
-                jurisdiction_district="Visakhapatnam",
-                password_hash=get_password_hash("Authority@123"),
-                is_active=True
-            )
-            db.add(authority)
+            account.username = username
+            account.full_name = full_name
+            account.email = email
+            account.phone = phone
+            account.role = role
+            account.is_active = True
+            if migrated_legacy or account.password_hash is None:
+                account.password_hash = get_password_hash(password)
+            for key, value in scope.items():
+                setattr(account, key, value)
             db.commit()
-            db_logger.info("[AUTHORITY] Fresh Higher Authority created: username=collector_rao")
-        else:
-            demo_authority.jurisdiction_state = "Andhra Pradesh"
-            demo_authority.jurisdiction_district = "Visakhapatnam"
-            db.commit()
+            # Never include passwords in logs.
+            db_logger.info(f"[TEST ACCOUNT] Ready: username={username}")
+
+        ensure_test_account("dr_sarah", "testdoctor", "Test Doctor", "testdoctor@healthcare.local", "9876543210", "doctor", "testdoctor")
+        ensure_test_account("assistant_alex", "testassistant", "Test Assistant/Camp", "testassistant@healthcare.local", "9123456780", "camp_assistant", "testassistant")
+        ensure_test_account("volunteer_maya", "testvolunteer", "Test Volunteer", "testvolunteer@healthcare.local", "9000000001", "volunteer", "testvolunteer")
+        ensure_test_account(
+            "collector_rao", "testauthority", "Test District Authority", "testauthority@healthcare.local", "9111111111",
+            "higher_authority", "testauthority", jurisdiction_level="district",
+            jurisdiction_state="Andhra Pradesh", jurisdiction_district="Visakhapatnam"
+        )
 
     except Exception as e:
         db.rollback()

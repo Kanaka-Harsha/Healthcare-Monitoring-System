@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from sqlalchemy import Column, String, Integer, DateTime, JSON, Boolean, ForeignKey, Float
+from sqlalchemy import Column, String, Integer, DateTime, JSON, Boolean, ForeignKey, Float, Date
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from app.db.session import Base
@@ -14,6 +14,8 @@ class Patient(Base):
     aadhaar_masked = Column(String(50), nullable=False)  # e.g., XXXX-XXXX-1234
     aadhaar_hash = Column(String(64), unique=True, index=True, nullable=False)  # SHA-256 for duplicate check
     age = Column(Integer, nullable=True)
+    age_days = Column(Integer, nullable=True)
+    date_of_birth = Column(Date, nullable=True)
     gender = Column(String(20), nullable=True, index=True)
     
     # Separated Address Fields for granular analytics
@@ -32,12 +34,16 @@ class Patient(Base):
     primary_health_issue = Column(String(150), nullable=True, index=True)
     health_issues_list = Column(JSON, nullable=True)
     health_issue_categories = Column(JSON, nullable=True)
+    health_assessed = Column(Boolean, nullable=True)
     age_months = Column(Integer, nullable=True)
     is_pregnant = Column(Boolean, nullable=True, index=True)
     pregnancy_month = Column(Integer, nullable=True)
     pregnancy_issues = Column(JSON, nullable=True)
     anc_visit_count = Column(Integer, nullable=True)
     vaccination_status = Column(String(40), nullable=True, index=True)
+    vaccination_records = Column(JSON, nullable=True)
+    antenatal_care = Column(JSON, nullable=True)
+    newborn_details = Column(JSON, nullable=True)
     weight_kg = Column(Float, nullable=True)
     height_cm = Column(Float, nullable=True)
     growth_issues = Column(JSON, nullable=True)

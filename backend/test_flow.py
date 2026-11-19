@@ -10,8 +10,8 @@ BASE_URL = "http://127.0.0.1:8000/api/v1"
 def test_full_flow():
     print("🧪 1. Testing Collector Login...")
     res = requests.post(f"{BASE_URL}/auth/login", json={
-        "username_or_phone": "collector@healthcare.local",
-        "password": "Collector@123"
+        "username_or_phone": "testassistant",
+        "password": "testassistant"
     })
     assert res.status_code == 200, f"Collector login failed: {res.text}"
     collector_token = res.json()["access_token"]
@@ -40,8 +40,8 @@ def test_full_flow():
 
     print("\n🧪 3. Testing Doctor Login...")
     res = requests.post(f"{BASE_URL}/auth/login", json={
-        "username_or_phone": "doctor@healthcare.local",
-        "password": "Doctor@123"
+        "username_or_phone": "testdoctor",
+        "password": "testdoctor"
     })
     assert res.status_code == 200, f"Doctor login failed: {res.text}"
     doctor_token = res.json()["access_token"]
@@ -90,15 +90,15 @@ def test_full_flow():
 
     print("\n🧪 7. Testing Admin Analytics Overview...")
     res = requests.post(f"{BASE_URL}/auth/login", json={
-        "username_or_phone": "admin@healthcare.local",
-        "password": "Admin@Healthcare2026"
+        "username_or_phone": "admin",
+        "password": "admin"
     })
     admin_token = res.json()["access_token"]
     admin_headers = {"Authorization": f"Bearer {admin_token}"}
     res = requests.get(f"{BASE_URL}/admin/analytics/overview", headers=admin_headers)
     assert res.status_code == 200, f"Admin analytics failed: {res.text}"
     analytics = res.json()
-    print(f"✅ Admin Analytics Verified: Total Patients={analytics['total_patients']}, Screenings={analytics['total_screenings']}, Audit Logs={len(analytics['recent_audit_logs'])}")
+    print(f"✅ Admin Analytics Verified: Total Patients={analytics['total_patients']}, Screenings={analytics['total_screenings']}")
 
     print("\n🎉 ALL BACKEND & DATABASE ENDPOINTS PASSED WITH 100% SUCCESS!")
 

@@ -1,13 +1,56 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useSync } from '../../context/SyncContext';
 import InstallAppButton from './InstallButton';
+import api, { extractErrorMessage } from '../../services/api';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const { isOnline, pendingCount, isSyncing, triggerSync } = useSync();
   const location = useLocation();
+  const [showPasswordDialog, setShowPasswordDialog] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordMessage, setPasswordMessage] = useState(null);
+  const [passwordSaving, setPasswordSaving] = useState(false);
+
+  const closePasswordDialog = () => {
+    setShowPasswordDialog(false);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordMessage(null);
+  };
+
+  const submitPasswordChange = async (event) => {
+    event.preventDefault();
+    setPasswordMessage(null);
+    if (newPassword.length < 8) {
+      setPasswordMessage({ type: 'error', text: 'Use at least 8 characters for your new password.' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage({ type: 'error', text: 'The new passwords do not match.' });
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      const response = await api.post('/auth/change-password', {
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+      setPasswordMessage({ type: 'success', text: response.data?.message || 'Your password has been changed.' });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      setPasswordMessage({ type: 'error', text: extractErrorMessage(error, 'Unable to change your password.') });
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
 
   const getRoleLabel = (role) => {
     switch (role) {
@@ -32,6 +75,7 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
+    <>
     <header className="sticky top-0 z-40 w-full bg-white border-b border-slate-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         
@@ -178,6 +222,13 @@ const Navbar = () => {
                 <p className="text-[11px] text-teal-700 font-medium">{getRoleLabel(user.role)}</p>
               </div>
 
+              <button
+                onClick={() => { setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); setPasswordMessage(null); setShowPasswordDialog(true); }}
+                className="px-3 py-1.5 text-xs font-semibold rounded bg-white hover:bg-teal-50 text-teal-800 border border-teal-200 transition"
+              >
+                Account
+              </button>
+
               {/* Sign Out */}
               <button
                 onClick={logout}
@@ -191,6 +242,25 @@ const Navbar = () => {
 
       </div>
     </header>
+
+    {showPasswordDialog && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) closePasswordDialog(); }}>
+        <section role="dialog" aria-modal="true" aria-labelledby="account-password-title" className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-xl">
+          <div className="flex items-start justify-between gap-4">
+            <div><h2 id="account-password-title" className="text-lg font-bold text-slate-900">Account settings</h2><p className="mt-1 text-sm text-slate-600">Change your sign-in password.</p></div>
+            <button type="button" onClick={closePasswordDialog} aria-label="Close" className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100">✕</button>
+          </div>
+          <form onSubmit={submitPasswordChange} className="mt-4 space-y-3">
+            <label className="block text-sm font-medium text-slate-700">Current password<input type="password" autoComplete="current-password" required value={currentPassword} onChange={e=>setCurrentPassword(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" /></label>
+            <label className="block text-sm font-medium text-slate-700">New password<input type="password" autoComplete="new-password" minLength={8} required value={newPassword} onChange={e=>setNewPassword(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" /><span className="mt-1 block text-xs font-normal text-slate-500">Use at least 8 characters.</span></label>
+            <label className="block text-sm font-medium text-slate-700">Confirm new password<input type="password" autoComplete="new-password" minLength={8} required value={confirmPassword} onChange={e=>setConfirmPassword(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-700" /></label>
+            {passwordMessage && <p role="status" className={`rounded-lg border p-3 text-sm ${passwordMessage.type === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-rose-200 bg-rose-50 text-rose-800'}`}>{passwordMessage.text}</p>}
+            <div className="flex justify-end gap-2 pt-2"><button type="button" onClick={closePasswordDialog} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700">Close</button><button type="submit" disabled={passwordSaving} className="rounded-lg bg-teal-800 px-4 py-2 text-sm font-semibold text-white hover:bg-teal-900 disabled:opacity-50">{passwordSaving ? 'Saving…' : 'Change password'}</button></div>
+          </form>
+        </section>
+      </div>
+    )}
+    </>
   );
 };
 

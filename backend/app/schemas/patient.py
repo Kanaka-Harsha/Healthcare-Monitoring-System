@@ -1,13 +1,15 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Dict, Any, List
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, date
 
 class PatientCreate(BaseModel):
     full_name: str = Field(..., min_length=2, max_length=255)
     phone: str = Field(..., description="10-digit Indian phone number")
     aadhaar_number: str = Field(..., description="12-digit Aadhaar number")
     age: Optional[int] = Field(None, ge=0, le=130)
+    age_days: Optional[int] = Field(None, ge=0, le=365)
+    date_of_birth: Optional[date] = None
     age_months: Optional[int] = Field(None, ge=0, le=240)
     gender: Optional[str] = Field(None, description="Male, Female, Other")
     
@@ -27,11 +29,15 @@ class PatientCreate(BaseModel):
     primary_health_issue: Optional[str] = None
     health_issues_list: Optional[List[str]] = None
     health_issue_categories: Optional[List[str]] = None
+    health_assessed: Optional[bool] = None
     is_pregnant: Optional[bool] = None
     pregnancy_month: Optional[int] = Field(None, ge=1, le=9)
     pregnancy_issues: Optional[List[str]] = None
     anc_visit_count: Optional[int] = Field(None, ge=0, le=30)
     vaccination_status: Optional[str] = None
+    vaccination_records: Optional[List[Dict[str, Any]]] = None
+    antenatal_care: Optional[Dict[str, Any]] = None
+    newborn_details: Optional[Dict[str, Any]] = None
     weight_kg: Optional[float] = Field(None, ge=0, le=300)
     height_cm: Optional[float] = Field(None, ge=0, le=250)
     growth_issues: Optional[List[str]] = None
@@ -59,6 +65,12 @@ class PatientCreate(BaseModel):
             raise ValueError("Only Andhra Pradesh is supported.")
         return "Andhra Pradesh"
 
+    @field_validator("date_of_birth")
+    def validate_date_of_birth(cls, value: Optional[date]) -> Optional[date]:
+        if value and value > date.today():
+            raise ValueError("Date of birth cannot be in the future.")
+        return value
+
     @field_validator("aadhaar_number")
     def validate_aadhaar(cls, v: str) -> str:
         clean = "".join(filter(str.isdigit, v))
@@ -73,6 +85,8 @@ class PatientUpdate(BaseModel):
     full_name: Optional[str] = None
     age: Optional[int] = None
     age_months: Optional[int] = None
+    age_days: Optional[int] = None
+    date_of_birth: Optional[date] = None
     gender: Optional[str] = None
     house_number: Optional[str] = None
     village_or_town: Optional[str] = None
@@ -87,11 +101,15 @@ class PatientUpdate(BaseModel):
     primary_health_issue: Optional[str] = None
     health_issues_list: Optional[List[str]] = None
     health_issue_categories: Optional[List[str]] = None
+    health_assessed: Optional[bool] = None
     is_pregnant: Optional[bool] = None
     pregnancy_month: Optional[int] = None
     pregnancy_issues: Optional[List[str]] = None
     anc_visit_count: Optional[int] = None
     vaccination_status: Optional[str] = None
+    vaccination_records: Optional[List[Dict[str, Any]]] = None
+    antenatal_care: Optional[Dict[str, Any]] = None
+    newborn_details: Optional[Dict[str, Any]] = None
     weight_kg: Optional[float] = None
     height_cm: Optional[float] = None
     growth_issues: Optional[List[str]] = None
@@ -106,6 +124,8 @@ class PatientOut(BaseModel):
     aadhaar_masked: str
     age: Optional[int] = None
     age_months: Optional[int] = None
+    age_days: Optional[int] = None
+    date_of_birth: Optional[date] = None
     gender: Optional[str] = None
     house_number: Optional[str] = None
     village_or_town: Optional[str] = None
@@ -120,11 +140,15 @@ class PatientOut(BaseModel):
     primary_health_issue: Optional[str] = None
     health_issues_list: Optional[List[str]] = None
     health_issue_categories: Optional[List[str]] = None
+    health_assessed: Optional[bool] = None
     is_pregnant: Optional[bool] = None
     pregnancy_month: Optional[int] = None
     pregnancy_issues: Optional[List[str]] = None
     anc_visit_count: Optional[int] = None
     vaccination_status: Optional[str] = None
+    vaccination_records: Optional[List[Dict[str, Any]]] = None
+    antenatal_care: Optional[Dict[str, Any]] = None
+    newborn_details: Optional[Dict[str, Any]] = None
     weight_kg: Optional[float] = None
     height_cm: Optional[float] = None
     growth_issues: Optional[List[str]] = None

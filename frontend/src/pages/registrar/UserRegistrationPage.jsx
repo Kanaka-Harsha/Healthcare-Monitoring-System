@@ -93,7 +93,8 @@ const UserRegistrationPage = () => {
   const [gender, setGender] = useState('Male');
   const [age, setAge] = useState('');
   const [ageMonths, setAgeMonths] = useState('');
-  const [ageGroup, setAgeGroup] = useState('Adult (19-45)');
+  const [ageDays, setAgeDays] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [bloodGroup, setBloodGroup] = useState('O+');
 
   // Separated Address Columns
@@ -109,11 +110,22 @@ const UserRegistrationPage = () => {
   const [primaryProblem, setPrimaryProblem] = useState(PRIMARY_PROBLEMS[0]);
   const [selectedConditions, setSelectedConditions] = useState([]);
   const [issueCategories, setIssueCategories] = useState([]);
+  const [healthAssessed, setHealthAssessed] = useState('unknown');
   const [pregnancyStatus, setPregnancyStatus] = useState('unknown');
   const [pregnancyMonth, setPregnancyMonth] = useState('');
   const [pregnancyIssues, setPregnancyIssues] = useState([]);
   const [ancVisits, setAncVisits] = useState('');
   const [vaccinationStatus, setVaccinationStatus] = useState('unknown');
+  const [vaccineName, setVaccineName] = useState('');
+  const [vaccineDoseStatus, setVaccineDoseStatus] = useState('given');
+  const [vaccinationRecords, setVaccinationRecords] = useState([]);
+  const [antenatalCare, setAntenatalCare] = useState({});
+  const [birthWeightKg, setBirthWeightKg] = useState('');
+  const [feedingConcerns, setFeedingConcerns] = useState([]);
+  const [newbornConcerns, setNewbornConcerns] = useState([]);
+  const [newbornCheckDone, setNewbornCheckDone] = useState('not_recorded');
+  const [homeVisitCount, setHomeVisitCount] = useState('');
+  const [birthVaccinesStatus, setBirthVaccinesStatus] = useState('not_recorded');
   const [weightKg, setWeightKg] = useState('');
   const [heightCm, setHeightCm] = useState('');
   const [growthIssues, setGrowthIssues] = useState([]);
@@ -134,17 +146,15 @@ const UserRegistrationPage = () => {
   const [createdPatient, setCreatedPatient] = useState(null);
   const [uploadedReportsList, setUploadedReportsList] = useState([]);
 
+  const birthDateAgeDays = dateOfBirth ? Math.floor((Date.now() - new Date(`${dateOfBirth}T00:00:00`).getTime()) / 86400000) : null;
+  const approximateAgeDays = birthDateAgeDays ?? (ageDays !== '' ? parseInt(ageDays) : ageMonths !== '' ? parseInt(ageMonths) * 30.4375 : age !== '' ? parseInt(age) * 365.2425 : null);
+  const underSixForForm = approximateAgeDays !== null && approximateAgeDays < 6 * 365.2425;
+  const newbornForForm = approximateAgeDays !== null && approximateAgeDays <= 28 && (dateOfBirth || ageDays !== '');
+
   const handleAgeChange = (val) => {
     setAge(val);
     const num = parseInt(val);
     if (num > 2) setAgeMonths('');
-    if (!isNaN(num)) {
-      if (num <= 12) setAgeGroup('Infant / Child (0-12)');
-      else if (num <= 18) setAgeGroup('Youth (13-18)');
-      else if (num <= 45) setAgeGroup('Adult (19-45)');
-      else if (num <= 60) setAgeGroup('Middle-Aged (46-60)');
-      else setAgeGroup('Senior Citizen (60+)');
-    }
   };
 
   const toggleCondition = (item) => {
@@ -224,7 +234,20 @@ const UserRegistrationPage = () => {
     }
 
     const finalDistrict = selectedDistrict === 'Other' ? (customDistrict.trim() || 'Other') : selectedDistrict;
-    const underFive = (ageMonths && parseInt(ageMonths) < 60) || (age && parseInt(age) < 5);
+    const dobDays = dateOfBirth ? Math.floor((Date.now() - new Date(`${dateOfBirth}T00:00:00`).getTime()) / 86400000) : null;
+    const enteredDays = ageDays !== '' ? parseInt(ageDays) : null;
+    const enteredMonths = ageMonths !== '' ? parseInt(ageMonths) : null;
+    const approxAgeDays = dobDays ?? enteredDays ?? (enteredMonths !== null ? enteredMonths * 30.4375 : age !== '' ? parseInt(age) * 365.2425 : null);
+    const underSix = approxAgeDays !== null && approxAgeDays < 6 * 365.2425;
+    const newbornDetails = approxAgeDays !== null && approxAgeDays <= 28 && (dateOfBirth || ageDays !== '') ? {
+      birth_weight_kg: birthWeightKg ? parseFloat(birthWeightKg) : null,
+      feeding_concerns: feedingConcerns,
+      newborn_concerns: newbornConcerns,
+      newborn_check_done: newbornCheckDone === 'yes' ? true : newbornCheckDone === 'no' ? false : null,
+      home_visit_count: homeVisitCount !== '' ? parseInt(homeVisitCount) : null,
+      birth_vaccines_status: birthVaccinesStatus === 'not_recorded' ? null : birthVaccinesStatus,
+    } : null;
+    const hasNewbornDetails = newbornDetails && Object.entries(newbornDetails).some(([key, value]) => key === 'feeding_concerns' || key === 'newborn_concerns' ? value.length > 0 : value !== null);
 
     const payload = {
       full_name: fullName.trim(),
@@ -233,18 +256,24 @@ const UserRegistrationPage = () => {
       patient_pin: patientPin.trim() || cleanPhone.slice(-4),
       age: age ? parseInt(age) : null,
       age_months: ageMonths ? parseInt(ageMonths) : null,
+      age_days: ageDays !== '' ? parseInt(ageDays) : null,
+      date_of_birth: dateOfBirth || null,
       gender,
       mandal: mandal.trim() || null,
       phc_name: phcName.trim() || null,
-      health_issue_categories: issueCategories,
+      health_issue_categories: issueCategories.length ? issueCategories : null,
+      health_assessed: healthAssessed === 'yes' ? true : healthAssessed === 'no' ? false : null,
       is_pregnant: gender !== 'Female' ? null : pregnancyStatus === 'yes' ? true : pregnancyStatus === 'no' ? false : null,
       pregnancy_month: gender === 'Female' && pregnancyStatus === 'yes' && pregnancyMonth ? parseInt(pregnancyMonth) : null,
-      pregnancy_issues: gender === 'Female' && pregnancyStatus === 'yes' ? pregnancyIssues : [],
+      pregnancy_issues: gender === 'Female' && pregnancyStatus === 'yes' ? (healthAssessed === 'yes' ? pregnancyIssues : pregnancyIssues.length ? pregnancyIssues : null) : null,
       anc_visit_count: gender === 'Female' && pregnancyStatus === 'yes' && ancVisits ? parseInt(ancVisits) : null,
-      vaccination_status: underFive && vaccinationStatus !== 'unknown' ? vaccinationStatus : null,
-      weight_kg: underFive && weightKg ? parseFloat(weightKg) : null,
-      height_cm: underFive && heightCm ? parseFloat(heightCm) : null,
-      growth_issues: underFive ? growthIssues : [],
+      vaccination_status: underSix && vaccinationStatus !== 'unknown' ? vaccinationStatus : null,
+      vaccination_records: underSix ? vaccinationRecords : [],
+      antenatal_care: gender === 'Female' && pregnancyStatus === 'yes' && Object.values(antenatalCare).some(value => value !== null) ? antenatalCare : null,
+      weight_kg: underSix && weightKg ? parseFloat(weightKg) : null,
+      height_cm: underSix && heightCm ? parseFloat(heightCm) : null,
+      growth_issues: underSix ? (healthAssessed === 'yes' ? growthIssues : growthIssues.length ? growthIssues : null) : null,
+      newborn_details: hasNewbornDetails ? newbornDetails : null,
       house_number: houseNumber.trim() || null,
       village_or_town: villageOrTown.trim() || null,
       city: city.trim() || null,
@@ -253,7 +282,7 @@ const UserRegistrationPage = () => {
       country: 'India',
       pincode: pincode.trim() || null,
       primary_health_issue: primaryProblem,
-      health_issues_list: selectedConditions.length > 0 ? selectedConditions : ['None Known'],
+      health_issues_list: healthAssessed === 'yes' ? (selectedConditions.length > 0 ? selectedConditions : ['None Known']) : (selectedConditions.length ? selectedConditions : null),
       emergency_contact: {
         name: emergencyName.trim() || null,
         relation: emergencyRelation,
@@ -329,14 +358,27 @@ const UserRegistrationPage = () => {
     setPatientPin('');
     setAge('');
     setAgeMonths('');
+    setAgeDays('');
+    setDateOfBirth('');
     setMandal('');
     setPhcName('');
     setIssueCategories([]);
+    setHealthAssessed('unknown');
     setPregnancyStatus('unknown');
     setPregnancyMonth('');
     setPregnancyIssues([]);
     setAncVisits('');
     setVaccinationStatus('unknown');
+    setVaccineName('');
+    setVaccineDoseStatus('given');
+    setVaccinationRecords([]);
+    setAntenatalCare({});
+    setBirthWeightKg('');
+    setFeedingConcerns([]);
+    setNewbornConcerns([]);
+    setNewbornCheckDone('not_recorded');
+    setHomeVisitCount('');
+    setBirthVaccinesStatus('not_recorded');
     setWeightKg('');
     setHeightCm('');
     setGrowthIssues([]);
@@ -555,18 +597,8 @@ const UserRegistrationPage = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Age Group</label>
-                <select
-                  value={ageGroup}
-                  onChange={(e) => setAgeGroup(e.target.value)}
-                  className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium text-slate-800"
-                >
-                  <option value="Infant / Child (0-12)">Child (0-12)</option>
-                  <option value="Youth (13-18)">Youth (13-18)</option>
-                  <option value="Adult (19-45)">Adult (19-45)</option>
-                  <option value="Middle-Aged (46-60)">Middle-Aged (46-60)</option>
-                  <option value="Senior Citizen (60+)">Senior (60+)</option>
-                </select>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Date of Birth (if known)</label>
+                <input type="date" max={new Date().toISOString().slice(0, 10)} value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-700" />
               </div>
 
               <div>
@@ -591,25 +623,25 @@ const UserRegistrationPage = () => {
           </div>
 
           <section className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <div><h2 className="text-sm font-bold text-slate-900">Health details for reports</h2><p className="text-xs text-slate-500 mt-1">These details are optional. Record them when known.</p></div>
+            <div><h2 className="text-sm font-bold text-slate-900">Health checks and care details</h2><p className="text-xs text-slate-500 mt-1">Record only what was asked or checked. Leave unknown details as “Not recorded”.</p></div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              {(!age || parseInt(age) <= 2 || ageMonths) && <div><label className="block text-xs font-bold text-slate-700 mb-1">Baby's age in months</label><input type="number" min="0" max="24" value={ageMonths} onChange={e=>setAgeMonths(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg" /></div>}
+              <div><label className="block text-xs font-bold text-slate-700 mb-1">Age in days (for newborns)</label><input type="number" min="0" max="365" value={ageDays} onChange={e=>setAgeDays(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg" /></div>
+              <div><label className="block text-xs font-bold text-slate-700 mb-1">Age in months (under 6 years)</label><input type="number" min="0" max="71" value={ageMonths} onChange={e=>setAgeMonths(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg" /></div>
+              <div><label className="block text-xs font-bold text-slate-700 mb-1">Health concerns checked?</label><select value={healthAssessed} onChange={e=>setHealthAssessed(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg"><option value="unknown">Not recorded</option><option value="yes">Yes</option><option value="no">No</option></select></div>
               {gender === 'Female' && <div><label className="block text-xs font-bold text-slate-700 mb-1">Pregnant?</label><select value={pregnancyStatus} onChange={e=>setPregnancyStatus(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg"><option value="unknown">Not recorded</option><option value="yes">Yes</option><option value="no">No</option></select></div>}
               {gender === 'Female' && pregnancyStatus === 'yes' && <>
-                <div><label className="block text-xs font-bold text-slate-700 mb-1">Pregnancy month</label><select value={pregnancyMonth} onChange={e=>setPregnancyMonth(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg"><option value="">Choose month</option>{Array.from({length:9},(_,i)=><option key={i+1} value={i+1}>{i+1} month</option>)}</select></div>
-                <div><label className="block text-xs font-bold text-slate-700 mb-1">Check-up visits</label><input type="number" min="0" max="30" value={ancVisits} onChange={e=>setAncVisits(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg" /></div>
-              </>}
-              {((age && parseInt(age) <= 5) || (ageMonths && parseInt(ageMonths) < 60)) && <>
-                <div><label className="block text-xs font-bold text-slate-700 mb-1">Vaccines</label><select value={vaccinationStatus} onChange={e=>setVaccinationStatus(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg"><option value="unknown">Not recorded</option><option value="up_to_date">All due vaccines given</option><option value="some_missed">Some vaccines missed</option><option value="overdue">Vaccines overdue</option></select></div>
-                <div><label className="block text-xs font-bold text-slate-700 mb-1">Weight (kg)</label><input type="number" step="0.1" min="0" max="100" value={weightKg} onChange={e=>setWeightKg(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg" /></div>
-                <div><label className="block text-xs font-bold text-slate-700 mb-1">Height (cm)</label><input type="number" step="0.1" min="0" max="200" value={heightCm} onChange={e=>setHeightCm(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg" /></div>
-                {(parseInt(age) <= 2 || (ageMonths && parseInt(ageMonths) <= 24)) && <div className="sm:col-span-2 lg:col-span-4"><label className="block text-xs font-bold text-slate-700 mb-2">Baby health or growth problem</label><div className="flex flex-wrap gap-2">{['Low weight','Slow growth','Frequent illness','Other'].map(x=><label key={x} className="text-xs flex items-center gap-1.5 rounded-full bg-slate-50 border px-2.5 py-1.5"><input type="checkbox" checked={growthIssues.includes(x)} onChange={e=>setGrowthIssues(v=>e.target.checked?[...v,x]:v.filter(k=>k!==x))}/>{x}</label>)}</div></div>}
+                <div><label className="block text-xs font-bold text-slate-700 mb-1">Pregnancy month</label><select value={pregnancyMonth} onChange={e=>setPregnancyMonth(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg"><option value="">Not recorded</option>{Array.from({length:9},(_,i)=><option key={i+1} value={i+1}>{i+1} month</option>)}</select></div>
+                <div><label className="block text-xs font-bold text-slate-700 mb-1">Pregnancy check-up visits</label><input type="number" min="0" max="30" value={ancVisits} onChange={e=>setAncVisits(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg" /></div>
               </>}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div><label className="block text-xs font-bold text-slate-700 mb-2">Health problem areas</label><div className="flex flex-wrap gap-2">{['Heart','Breathing','Kidney or urine','Stomach','Brain or nerves','Bones or movement','Diabetes','Eyes','Ears','Skin','Mental health','Other'].map(x=><label key={x} className="text-xs flex items-center gap-1.5 rounded-full bg-slate-50 border px-2.5 py-1.5"><input type="checkbox" checked={issueCategories.includes(x)} onChange={e=>setIssueCategories(v=>e.target.checked?[...v,x]:v.filter(k=>k!==x))}/>{x}</label>)}</div></div>
-              {gender === 'Female' && pregnancyStatus === 'yes' && <div><label className="block text-xs font-bold text-slate-700 mb-2">Pregnancy problems</label><div className="flex flex-wrap gap-2">{['High blood pressure','Low blood level','Diabetes','Swelling','Other'].map(x=><label key={x} className="text-xs flex items-center gap-1.5 rounded-full bg-slate-50 border px-2.5 py-1.5"><input type="checkbox" checked={pregnancyIssues.includes(x)} onChange={e=>setPregnancyIssues(v=>e.target.checked?[...v,x]:v.filter(k=>k!==x))}/>{x}</label>)}</div></div>}
-            </div>
+
+            {gender === 'Female' && pregnancyStatus === 'yes' && <div className="rounded-xl border border-pink-100 bg-pink-50/50 p-3 space-y-3"><h3 className="text-xs font-bold text-slate-800">Pregnancy checks and care</h3><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">{[['blood_pressure','Blood pressure checked'],['haemoglobin','Blood level checked'],['blood_sugar','Blood sugar checked'],['urine_test','Urine checked'],['td_vaccine','Td vaccine recorded'],['iron_calcium','Iron or calcium tablets recorded']].map(([key,label])=><label key={key} className="text-xs font-medium text-slate-700">{label}<select value={antenatalCare[key] === true ? 'done' : antenatalCare[key] === false ? 'not_done' : 'unknown'} onChange={e=>setAntenatalCare(value=>({...value,[key]:e.target.value==='done'?true:e.target.value==='not_done'?false:null}))} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2"><option value="unknown">Not recorded</option><option value="done">Done</option><option value="not_done">Not done</option></select></label>)}</div><div><label className="block text-xs font-bold text-slate-700 mb-2">Pregnancy concerns (reported or recorded)</label><div className="flex flex-wrap gap-2">{['High blood pressure','Low haemoglobin','High blood sugar','Urine problem','Swelling','Other recorded concern'].map(x=><label key={x} className="text-xs flex items-center gap-1.5 rounded-full bg-white border px-2.5 py-1.5"><input type="checkbox" checked={pregnancyIssues.includes(x)} onChange={e=>setPregnancyIssues(v=>e.target.checked?[...v,x]:v.filter(k=>k!==x))}/>{x}</label>)}</div></div></div>}
+
+            {underSixForForm && <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3 space-y-3"><h3 className="text-xs font-bold text-slate-800">Child health and vaccines</h3><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"><label className="text-xs font-bold text-slate-700">Vaccine status<select value={vaccinationStatus} onChange={e=>setVaccinationStatus(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5"><option value="unknown">Not recorded</option><option value="up_to_date">All due vaccines given</option><option value="some_missed">Some vaccines missed</option><option value="overdue">Vaccines overdue</option></select></label><label className="text-xs font-bold text-slate-700">Weight (kg)<input type="number" step="0.1" min="0" max="100" value={weightKg} onChange={e=>setWeightKg(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5" /></label><label className="text-xs font-bold text-slate-700">Height (cm)<input type="number" step="0.1" min="0" max="200" value={heightCm} onChange={e=>setHeightCm(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5" /></label></div><div className="flex flex-wrap items-end gap-2"><label className="text-xs font-bold text-slate-700">Vaccine / dose<input value={vaccineName} onChange={e=>setVaccineName(e.target.value)} placeholder="Enter as on vaccine card" className="mt-1 block rounded-lg border border-slate-300 bg-white p-2.5" /></label><label className="text-xs font-bold text-slate-700">Dose status<select value={vaccineDoseStatus} onChange={e=>setVaccineDoseStatus(e.target.value)} className="mt-1 block rounded-lg border border-slate-300 bg-white p-2.5"><option value="given">Given</option><option value="missed">Missed</option><option value="overdue">Overdue</option></select></label><button type="button" onClick={()=>{if(vaccineName.trim()){setVaccinationRecords(rows=>[...rows,{name:vaccineName.trim(),status:vaccineDoseStatus}]);setVaccineName('')}}} className="rounded-lg bg-blue-700 px-3 py-2.5 text-xs font-semibold text-white">Add dose</button></div>{vaccinationRecords.length>0&&<ul className="flex flex-wrap gap-2">{vaccinationRecords.map((row,index)=><li key={`${row.name}-${index}`} className="rounded-full border bg-white px-3 py-1 text-xs">{row.name}: {row.status}<button type="button" aria-label={`Remove ${row.name}`} onClick={()=>setVaccinationRecords(rows=>rows.filter((_,i)=>i!==index))} className="ml-2 font-bold text-rose-700">×</button></li>)}</ul>}<div><label className="block text-xs font-bold text-slate-700 mb-2">Growth and child concerns (recorded)</label><div className="flex flex-wrap gap-2">{['Low weight','Slow growth','Feeding difficulty','Frequent illness','Vision or hearing concern','Development concern','Other recorded concern'].map(x=><label key={x} className="text-xs flex items-center gap-1.5 rounded-full bg-white border px-2.5 py-1.5"><input type="checkbox" checked={growthIssues.includes(x)} onChange={e=>setGrowthIssues(v=>e.target.checked?[...v,x]:v.filter(k=>k!==x))}/>{x}</label>)}</div></div></div>}
+
+            {newbornForForm && <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 space-y-3"><h3 className="text-xs font-bold text-slate-800">Newborn checks (birth to 28 days)</h3><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"><label className="text-xs font-bold text-slate-700">Birth weight (kg)<input type="number" step="0.01" min="0" max="10" value={birthWeightKg} onChange={e=>setBirthWeightKg(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5" /></label><label className="text-xs font-bold text-slate-700">Newborn check completed?<select value={newbornCheckDone} onChange={e=>setNewbornCheckDone(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5"><option value="not_recorded">Not recorded</option><option value="yes">Yes</option><option value="no">No</option></select></label><label className="text-xs font-bold text-slate-700">Home visits recorded<input type="number" min="0" max="30" value={homeVisitCount} onChange={e=>setHomeVisitCount(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5" /></label><label className="text-xs font-bold text-slate-700">Birth vaccines status<select value={birthVaccinesStatus} onChange={e=>setBirthVaccinesStatus(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5"><option value="not_recorded">Not recorded</option><option value="given">Recorded as given</option><option value="missed">Recorded as missed</option></select></label></div>{[['feedingConcerns','Feeding or breastfeeding concerns',['Not feeding well','Breastfeeding difficulty','Vomiting']],['newbornConcerns','Newborn concerns',['Breathing difficulty','Jaundice','Possible infection','Birth condition']]].map(([key,label,options])=><div key={key}><label className="block text-xs font-bold text-slate-700 mb-2">{label}</label><div className="flex flex-wrap gap-2">{options.map(x=><label key={x} className="text-xs flex items-center gap-1.5 rounded-full bg-white border px-2.5 py-1.5"><input type="checkbox" checked={(key==='feedingConcerns'?feedingConcerns:newbornConcerns).includes(x)} onChange={e=>{const setter=key==='feedingConcerns'?setFeedingConcerns:setNewbornConcerns;setter(v=>e.target.checked?[...v,x]:v.filter(k=>k!==x))}}/>{x}</label>)}</div></div>)}</div>}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label className="block text-xs font-bold text-slate-700 mb-2">Health concerns recorded</label><div className="flex flex-wrap gap-2">{['Heart or blood pressure','Blood sugar','Breathing or lungs','Stomach or bowel','Kidney or urine','Blood or nutrition','Brain or nerves','Bones or joints','Eyes','Ears','Dental','Skin','Mental wellbeing','Fever or infection','Other concern'].map(x=><label key={x} className="text-xs flex items-center gap-1.5 rounded-full bg-slate-50 border px-2.5 py-1.5"><input type="checkbox" checked={issueCategories.includes(x)} onChange={e=>setIssueCategories(v=>e.target.checked?[...v,x]:v.filter(k=>k!==x))}/>{x}</label>)}</div></div></div>
           </section>
 
           {/* SECTION 3: Structured Address Columns */}
