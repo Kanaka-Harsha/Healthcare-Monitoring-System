@@ -426,29 +426,27 @@ const AdminDashboard = () => {
       </div>
 
       {/* Responsive Horizontal Tabs */}
-      <div className="horizontal-scroll-touch pb-1">
-        <div className="flex space-x-1.5 border-b border-slate-200 min-w-max">
-          {[
-            { id: 'overview', label: '📊 System Analytics' },
-            { id: 'users', label: `👥 Staff & Doctors (${users.length})` },
-            { id: 'patients', label: `🧑‍⚕️ Patients (${patients.length})` },
-            { id: 'vitalsLogs', label: '💓 Live Camp Telemetry' },
-            { id: 'devices', label: '📡 BLE Monitors' },
-            { id: 'audits', label: '🔒 Security Audits' }
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`py-2.5 px-3.5 text-xs sm:text-sm font-semibold rounded-t-lg transition whitespace-nowrap touch-target ${
-                activeTab === tab.id
-                  ? 'bg-white border-t-2 border-l border-r border-slate-200 border-t-teal-700 text-teal-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      <div className="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto horizontal-scroll-touch flex items-center gap-1.5">
+        {[
+          { id: 'overview', label: '📊 System Analytics' },
+          { id: 'users', label: `👥 Staff & Doctors (${users.length})` },
+          { id: 'patients', label: `🧑‍⚕️ Patients (${patients.length})` },
+          { id: 'vitalsLogs', label: '💓 Live Camp Telemetry' },
+          { id: 'devices', label: '📡 BLE Monitors' },
+          { id: 'audits', label: '🔒 Security Audits' }
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`py-2 px-3.5 text-xs sm:text-sm font-bold rounded-xl transition whitespace-nowrap flex-shrink-0 ${
+              activeTab === tab.id
+                ? 'bg-teal-800 text-white shadow-sm'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Global Alerts */}
@@ -481,7 +479,7 @@ const AdminDashboard = () => {
         <div className="space-y-4">
           
           {/* Controls Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
             <div>
               <h3 className="text-sm font-bold text-slate-900">Staff Account Management</h3>
               <p className="text-xs text-slate-500">Allocate User IDs, passwords, and manage Doctor/Registrar roles.</p>
@@ -493,13 +491,13 @@ const AdminDashboard = () => {
                 value={userSearch}
                 onChange={(e) => setUserSearch(e.target.value)}
                 placeholder="Search staff..."
-                className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-teal-700 w-full sm:w-48"
+                className="px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-700 w-full sm:w-48 bg-slate-50 font-medium"
               />
 
               <select
                 value={userRoleFilter}
                 onChange={(e) => setUserRoleFilter(e.target.value)}
-                className="px-3 py-1.5 rounded-lg border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                className="px-3 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-700 bg-slate-50 font-semibold"
               >
                 <option value="all">All Roles</option>
                 <option value="doctor">Doctors</option>
@@ -512,7 +510,7 @@ const AdminDashboard = () => {
 
               <button
                 onClick={handleOpenCreateUser}
-                className="px-3.5 py-1.5 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5 touch-target"
+                className="px-4 py-2 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5 flex-shrink-0"
               >
                 <span>+ Add User / Staff</span>
               </button>
@@ -520,8 +518,8 @@ const AdminDashboard = () => {
           </div>
 
           {/* Users Table */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="horizontal-scroll-touch">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-700 min-w-[700px]">
                 <thead className="bg-slate-50 text-slate-700 uppercase font-semibold text-[10px] border-b border-slate-200">
                   <tr>
@@ -612,7 +610,7 @@ const AdminDashboard = () => {
       {activeTab === 'patients' && (
         <div className="space-y-4">
           
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm">
             <div>
               <h3 className="text-sm font-bold text-slate-900">Registered Patient Records</h3>
               <p className="text-xs text-slate-500">Search, create, view health questionnaires, or delete patient profiles.</p>
@@ -626,19 +624,19 @@ const AdminDashboard = () => {
                   fetchPatients(e.target.value);
                 }}
                 placeholder="Search by name, phone, Aadhaar..."
-                className="w-full sm:w-64 px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
+                className="w-full sm:w-64 px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium"
               />
               <button
                 onClick={() => setShowCreatePatientModal(true)}
-                className="px-3.5 py-1.5 rounded-lg bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5 touch-target"
+                className="px-4 py-2 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-bold shadow-sm transition flex items-center gap-1.5 flex-shrink-0"
               >
                 <span>+ Add New Patient</span>
               </button>
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="horizontal-scroll-touch">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
               <table className="w-full text-left text-xs text-slate-700 min-w-[750px]">
                 <thead className="bg-slate-50 text-slate-700 uppercase font-semibold text-[10px] border-b border-slate-200">
                   <tr>

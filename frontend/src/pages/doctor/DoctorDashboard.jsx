@@ -10,6 +10,20 @@ import {
   CartesianGrid, 
   Legend 
 } from 'recharts';
+import { 
+  UserCheck, 
+  Heart, 
+  FileText, 
+  ClipboardList, 
+  PlusCircle, 
+  Search, 
+  CheckCircle2, 
+  X, 
+  Plus, 
+  Download,
+  Activity,
+  AlertTriangle
+} from 'lucide-react';
 
 const DoctorDashboard = () => {
   // Step 1: Search Patient
@@ -33,7 +47,7 @@ const DoctorDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [activeTab, setActiveTab] = useState('vitals'); // 'vitals' | 'history' | 'notes' | 'addNote'
+  const [activeTab, setActiveTab] = useState('vitals'); // 'vitals' | 'history' | 'reports' | 'notes' | 'addNote'
 
   // Step 1: Request OTP
   const handleRequestOtp = async (e) => {
@@ -100,36 +114,43 @@ const DoctorDashboard = () => {
   };
 
   const handleRemoveMedicineRow = (index) => {
+    if (medicines.length <= 1) return;
     setMedicines(medicines.filter((_, i) => i !== index));
   };
 
   const handleSubmitClinicalNote = async (e) => {
     e.preventDefault();
-    if (!unlockedFile) return;
+    if (!diagnosis.trim()) {
+      setErrorMsg('Please provide a primary diagnosis.');
+      return;
+    }
+
+    const cleanMeds = medicines.filter(m => m.name.trim() !== '');
 
     setLoading(true);
     try {
-      const payload = {
+      await api.post('/doctor/clinical-notes', {
         patient_id: unlockedFile.patient.id,
-        diagnosis,
-        prescription,
-        clinical_notes: clinicalNotes,
-        prescribed_medicines: medicines.filter(m => m.name.trim() !== ''),
-        follow_up_date: followUpDate
-      };
-
-      const res = await api.post('/doctor/clinical-note', payload);
-      setUnlockedFile({
-        ...unlockedFile,
-        clinical_history: [res.data, ...unlockedFile.clinical_history]
+        diagnosis: diagnosis.trim(),
+        prescription: prescription.trim() || null,
+        prescribed_medicines: cleanMeds.length > 0 ? cleanMeds : null,
+        clinical_notes: clinicalNotes.trim() || null,
+        follow_up_date: followUpDate || null
       });
 
-      setSuccessMsg('Clinical prescription and diagnosis saved successfully.');
-      // Reset form
+      setSuccessMsg('Clinical consultation and prescription recorded successfully!');
       setDiagnosis('');
       setPrescription('');
       setClinicalNotes('');
+      setFollowUpDate('');
       setMedicines([{ name: '', dosage: '', frequency: '1-0-1', days: '5' }]);
+      
+      // Refresh patient file
+      const refreshed = await api.post('/doctor/patient/verify-consent-otp', {
+        phone: unlockedFile.patient.phone,
+        otp: otpCode.trim()
+      });
+      setUnlockedFile(refreshed.data);
       setActiveTab('notes');
     } catch (err) {
       setErrorMsg(extractErrorMessage(err, 'Failed to save clinical note.'));
@@ -145,6 +166,7 @@ const DoctorDashboard = () => {
     setOtpCode('');
     setErrorMsg('');
     setSuccessMsg('');
+    setActiveTab('vitals');
   };
 
   // Format chart data (chronological)
@@ -157,95 +179,108 @@ const DoctorDashboard = () => {
   })) : [];
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <div className="max-w-6xl mx-auto px-3 sm:px-6 py-6 space-y-6">
       
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded bg-white border border-slate-200 shadow-sm">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm">
         <div>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-teal-100 text-teal-800">
-            SwastGrama - Doctor Portal
-          </span>
-          <h1 className="text-xl font-bold text-slate-900 mt-1">Doctor Consultation & Clinical History</h1>
-          <p className="text-xs text-slate-600">
-            Search patient by mobile number and enter patient-approved OTP to access medical records.
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-teal-100 text-teal-800">
+              Doctor Consultation Desk
+            </span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-800">
+              Consent-Gated EHR
+            </span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mt-1">Patient Clinical Consultation & History</h1>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Enter citizen's phone number. Patient will receive a secure OTP to grant clinical records access.
           </p>
         </div>
 
         {unlockedFile && (
           <button
             onClick={handleResetSession}
-            className="px-3 py-1.5 rounded text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition"
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition shadow-sm flex items-center justify-center gap-1.5 flex-shrink-0"
           >
-            Close Patient File
+            <span>Close Patient File</span>
           </button>
         )}
       </div>
 
       {/* Messages */}
       {errorMsg && (
-        <div className="p-3 rounded bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium">
-          {errorMsg}
+        <div className="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-medium shadow-sm flex items-center justify-between">
+          <span>{errorMsg}</span>
+          <button onClick={() => setErrorMsg('')} className="font-bold text-sm text-rose-500 hover:text-rose-800">✕</button>
         </div>
       )}
 
       {successMsg && (
-        <div className="p-3 rounded bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-medium">
-          {successMsg}
+        <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-medium shadow-sm flex items-center justify-between">
+          <span>{successMsg}</span>
+          <button onClick={() => setSuccessMsg('')} className="font-bold text-sm text-emerald-600 hover:text-emerald-900">✕</button>
         </div>
       )}
 
       {/* Screen 1: Search Patient by Phone & OTP */}
       {!unlockedFile ? (
-        <div className="max-w-lg mx-auto bg-white p-6 sm:p-7 rounded border border-slate-200 shadow-sm space-y-4">
+        <div className="max-w-lg mx-auto bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm space-y-5">
           <div className="border-b border-slate-100 pb-3">
-            <h2 className="text-base font-bold text-slate-900">Patient File Access</h2>
-            <p className="text-xs text-slate-600 mt-0.5">
-              Enter the patient's mobile number. A 6-digit verification code will be sent to the patient.
+            <h2 className="text-base font-bold text-slate-900">Citizen Health File Access</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Enter patient's mobile number. A 6-digit consent OTP will be sent to their registered mobile.
             </p>
           </div>
 
           {!otpSent ? (
             <form onSubmit={handleRequestOtp} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Patient Mobile Number
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Patient Mobile Number *
                 </label>
-                <input
-                  type="tel"
-                  value={patientPhone}
-                  onChange={(e) => setPatientPhone(e.target.value)}
-                  placeholder="Enter 10-digit mobile number"
-                  maxLength={10}
-                  required
-                  className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:outline-none focus:border-teal-700 focus:ring-1 focus:ring-teal-700"
-                />
+                <div className="flex">
+                  <span className="inline-flex items-center px-3 text-xs bg-slate-100 border border-r-0 border-slate-300 rounded-l-xl text-slate-600 font-semibold">+91</span>
+                  <input
+                    type="tel"
+                    value={patientPhone}
+                    onChange={(e) => setPatientPhone(e.target.value)}
+                    placeholder="Enter 10-digit mobile number"
+                    maxLength={10}
+                    required
+                    className="w-full px-3 py-2.5 rounded-r-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-700"
+                  />
+                </div>
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-2.5 px-4 rounded bg-teal-800 hover:bg-teal-900 text-white font-semibold text-sm transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full py-2.5 px-4 rounded-xl bg-teal-800 hover:bg-teal-900 text-white font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {loading ? (
                   <>
                     <span className="spinner-white"></span>
-                    <span>Sending code via SMS...</span>
+                    <span>Sending Consent Code via SMS...</span>
                   </>
                 ) : (
-                  'Request Patient Consent Code'
+                  <>
+                    <Search className="w-3.5 h-3.5" />
+                    <span>Request Patient Consent Code</span>
+                  </>
                 )}
               </button>
             </form>
           ) : (
             <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <div className="p-3 rounded bg-slate-50 border border-slate-200 text-xs text-slate-700 space-y-1">
+              <div className="p-3.5 rounded-xl bg-teal-50/60 border border-teal-200 text-xs text-teal-900 space-y-1">
                 <p>Verification code dispatched to: <strong>+91 {patientPhone}</strong></p>
-                {maskedPatientName && <p>Patient: <strong>{maskedPatientName}</strong></p>}
+                {maskedPatientName && <p>Patient Name: <strong>{maskedPatientName}</strong></p>}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Enter 6-Digit Code (from Patient)
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Enter 6-Digit Consent Code (from Patient) *
                 </label>
                 <input
                   type="text"
@@ -254,29 +289,32 @@ const DoctorDashboard = () => {
                   placeholder="123456"
                   maxLength={6}
                   required
-                  className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-center font-mono tracking-widest text-base focus:outline-none focus:border-teal-700 focus:ring-1 focus:ring-teal-700"
+                  className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-center font-mono font-bold tracking-widest text-lg focus:outline-none focus:ring-2 focus:ring-teal-700"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isVerifying}
-                className="w-full py-2.5 px-4 rounded bg-teal-800 hover:bg-teal-900 text-white font-semibold text-sm transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                className="w-full py-2.5 px-4 rounded-xl bg-teal-800 hover:bg-teal-900 text-white font-bold text-xs transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {isVerifying ? (
                   <>
                     <span className="spinner-white"></span>
-                    <span>Verifying code...</span>
+                    <span>Verifying Code...</span>
                   </>
                 ) : (
-                  'Verify Code & Open Medical File'
+                  <>
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Verify Code & Unlock File</span>
+                  </>
                 )}
               </button>
 
               <button
                 type="button"
                 onClick={() => setOtpSent(false)}
-                className="w-full text-center text-xs text-slate-600 hover:text-slate-900 underline pt-1"
+                className="w-full text-center text-xs text-slate-500 hover:text-slate-800 underline pt-1"
               >
                 Use a different mobile number
               </button>
@@ -285,108 +323,110 @@ const DoctorDashboard = () => {
         </div>
       ) : (
         /* Screen 2: Unlocked Patient Medical Record File */
-        <div className="space-y-6">
+        <div className="space-y-5">
           
-          {/* Patient Profile Card */}
-          <div className="p-5 rounded bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+          {/* Patient Profile Card (Separated cleanly from tabs) */}
+          <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-bold text-slate-900">{unlockedFile.patient.full_name}</h2>
-                <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-semibold">
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
                   Verified & Open
                 </span>
               </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 mt-1">
-                <span>Phone: <strong>+91 {unlockedFile.patient.phone}</strong></span>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-600 mt-1">
+                <span>📞 +91 {unlockedFile.patient.phone}</span>
                 <span>•</span>
                 <span>Aadhaar: <strong className="font-mono">{unlockedFile.patient.aadhaar_masked}</strong></span>
                 <span>•</span>
-                <span>Age: <strong>{unlockedFile.patient.age || 'N/A'} yrs</strong></span>
+                <span>{unlockedFile.patient.age || 'N/A'} yrs</span>
                 <span>•</span>
-                <span>Gender: <strong>{unlockedFile.patient.gender || 'N/A'}</strong></span>
+                <span>{unlockedFile.patient.gender || 'N/A'}</span>
+                {unlockedFile.patient.district && (
+                  <>
+                    <span>•</span>
+                    <span>{unlockedFile.patient.village_or_town ? `${unlockedFile.patient.village_or_town}, ` : ''}{unlockedFile.patient.district}</span>
+                  </>
+                )}
               </div>
             </div>
 
-            <div className="flex overflow-x-auto horizontal-scroll-touch items-center gap-1.5 pb-1 max-w-full">
-              <button
-                onClick={() => setActiveTab('vitals')}
-                className={`px-3 py-1.5 rounded text-xs font-semibold whitespace-nowrap transition touch-target ${
-                  activeTab === 'vitals' ? 'bg-teal-800 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                Vital Signs ({unlockedFile.vitals_history.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('history')}
-                className={`px-3 py-1.5 rounded text-xs font-semibold whitespace-nowrap transition touch-target ${
-                  activeTab === 'history' ? 'bg-teal-800 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                Medical History
-              </button>
-              <button
-                onClick={() => setActiveTab('reports')}
-                className={`px-3 py-1.5 rounded text-xs font-semibold whitespace-nowrap transition touch-target ${
-                  activeTab === 'reports' ? 'bg-teal-800 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                Medical Reports ({unlockedFile.reports?.length || 0})
-              </button>
-              <button
-                onClick={() => setActiveTab('notes')}
-                className={`px-3 py-1.5 rounded text-xs font-semibold whitespace-nowrap transition touch-target ${
-                  activeTab === 'notes' ? 'bg-teal-800 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                }`}
-              >
-                Doctor Notes ({unlockedFile.clinical_history.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('addNote')}
-                className={`px-3 py-1.5 rounded text-xs font-semibold whitespace-nowrap transition touch-target ${
-                  activeTab === 'addNote' ? 'bg-teal-800 text-white' : 'bg-teal-50 text-teal-900 border border-teal-200 hover:bg-teal-100'
-                }`}
-              >
-                + New Diagnosis
-              </button>
-            </div>
+            <button
+              onClick={handleResetSession}
+              className="text-xs font-semibold text-slate-500 hover:text-rose-700 underline self-start sm:self-auto"
+            >
+              Close Record
+            </button>
+          </div>
+
+          {/* DEDICATED TABS BAR */}
+          <div className="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto horizontal-scroll-touch flex items-center gap-1.5">
+            {[
+              { id: 'vitals', label: `Vital Signs (${unlockedFile.vitals_history.length})`, icon: Activity },
+              { id: 'history', label: 'Medical History', icon: ClipboardList },
+              { id: 'reports', label: `Medical Reports (${unlockedFile.reports?.length || 0})`, icon: FileText },
+              { id: 'notes', label: `Doctor Notes (${unlockedFile.clinical_history.length})`, icon: UserCheck },
+              { id: 'addNote', label: '+ New Diagnosis', icon: PlusCircle, highlight: true },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const isCurrent = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition flex items-center gap-1.5 ${
+                    isCurrent
+                      ? tab.highlight
+                        ? 'bg-teal-800 text-white shadow-sm'
+                        : 'bg-slate-900 text-white shadow-sm'
+                      : tab.highlight
+                      ? 'bg-teal-50 text-teal-900 border border-teal-200 hover:bg-teal-100'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* TAB 1: Vitals Timeline & Trend Charts */}
           {activeTab === 'vitals' && (
-            <div className="space-y-6">
+            <div className="space-y-5">
               
               {/* Latest Vitals Highlights */}
               {unlockedFile.vitals_history.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="p-3.5 rounded bg-white border border-slate-200 shadow-sm">
-                    <span className="text-xs text-slate-600 block">Latest Blood Pressure</span>
-                    <div className="text-lg font-bold text-slate-900 mt-1">
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+                    <span className="text-xs text-slate-500 block font-medium">Blood Pressure</span>
+                    <div className="text-xl font-bold text-slate-900 mt-1">
                       {unlockedFile.vitals_history[0].systolic_bp ?? '--'} / {unlockedFile.vitals_history[0].diastolic_bp ?? '--'}
-                      <span className="text-xs font-normal text-slate-500 ml-1">mmHg</span>
+                      <span className="text-xs font-normal text-slate-400 ml-1">mmHg</span>
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded bg-white border border-slate-200 shadow-sm">
-                    <span className="text-xs text-slate-600 block">Pulse Rate</span>
-                    <div className="text-lg font-bold text-slate-900 mt-1">
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+                    <span className="text-xs text-slate-500 block font-medium">Pulse Rate</span>
+                    <div className="text-xl font-bold text-slate-900 mt-1">
                       {unlockedFile.vitals_history[0].heart_rate ?? '--'}
-                      <span className="text-xs font-normal text-slate-500 ml-1">BPM</span>
+                      <span className="text-xs font-normal text-slate-400 ml-1">BPM</span>
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded bg-white border border-slate-200 shadow-sm">
-                    <span className="text-xs text-slate-600 block">SpO2 Oxygen</span>
-                    <div className="text-lg font-bold text-slate-900 mt-1">
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+                    <span className="text-xs text-slate-500 block font-medium">SpO2 Oxygen</span>
+                    <div className="text-xl font-bold text-slate-900 mt-1">
                       {unlockedFile.vitals_history[0].spo2 ?? '--'}
-                      <span className="text-xs font-normal text-slate-500 ml-1">%</span>
+                      <span className="text-xs font-normal text-slate-400 ml-1">%</span>
                     </div>
                   </div>
 
-                  <div className="p-3.5 rounded bg-white border border-slate-200 shadow-sm">
-                    <span className="text-xs text-slate-600 block">Body Temperature</span>
-                    <div className="text-lg font-bold text-slate-900 mt-1">
+                  <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+                    <span className="text-xs text-slate-500 block font-medium">Temperature</span>
+                    <div className="text-xl font-bold text-slate-900 mt-1">
                       {unlockedFile.vitals_history[0].temperature ?? '36.6'}
-                      <span className="text-xs font-normal text-slate-500 ml-1">°C</span>
+                      <span className="text-xs font-normal text-slate-400 ml-1">°C</span>
                     </div>
                   </div>
                 </div>
@@ -394,7 +434,7 @@ const DoctorDashboard = () => {
 
               {/* Vitals Trend Chart */}
               {chartData.length > 1 && (
-                <div className="p-5 rounded bg-white border border-slate-200 shadow-sm space-y-3">
+                <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
                   <h3 className="text-sm font-bold text-slate-900">Vitals History Trend</h3>
                   <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%">
@@ -402,7 +442,7 @@ const DoctorDashboard = () => {
                         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                         <XAxis dataKey="time" stroke="#64748b" fontSize={11} />
                         <YAxis stroke="#64748b" fontSize={11} domain={['dataMin - 10', 'dataMax + 10']} />
-                        <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#cbd5e1', fontSize: '12px' }} />
+                        <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '12px' }} />
                         <Legend />
                         <Line type="monotone" dataKey="systolic" name="Systolic BP" stroke="#0284c7" strokeWidth={2} />
                         <Line type="monotone" dataKey="diastolic" name="Diastolic BP" stroke="#0f766e" strokeWidth={2} />
@@ -415,33 +455,33 @@ const DoctorDashboard = () => {
               )}
 
               {/* Vitals History Table */}
-              <div className="bg-white p-5 rounded border border-slate-200 shadow-sm space-y-3">
+              <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
                 <h3 className="text-sm font-bold text-slate-900">Recorded Vital Signs Log</h3>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-slate-700">
+                  <table className="w-full text-left text-xs text-slate-700 min-w-[600px]">
                     <thead className="bg-slate-50 text-slate-700 uppercase font-semibold text-[10px] border-b border-slate-200">
                       <tr>
-                        <th className="p-2.5">Date & Time</th>
-                        <th className="p-2.5">Blood Pressure</th>
-                        <th className="p-2.5">Pulse Rate</th>
-                        <th className="p-2.5">SpO2 Oxygen</th>
-                        <th className="p-2.5">Temperature</th>
-                        <th className="p-2.5">Source Device</th>
+                        <th className="p-3">Date & Time</th>
+                        <th className="p-3">Blood Pressure</th>
+                        <th className="p-3">Pulse Rate</th>
+                        <th className="p-3">SpO2 Oxygen</th>
+                        <th className="p-3">Temperature</th>
+                        <th className="p-3">Source Device</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {unlockedFile.vitals_history.map((rec) => (
                         <tr key={rec.id} className="hover:bg-slate-50">
-                          <td className="p-2.5 text-slate-600 font-mono">
+                          <td className="p-3 text-slate-600 font-mono">
                             {new Date(rec.recorded_at).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
                           </td>
-                          <td className="p-2.5 font-bold text-slate-900">
+                          <td className="p-3 font-bold text-slate-900">
                             {rec.systolic_bp ?? '--'} / {rec.diastolic_bp ?? '--'} mmHg
                           </td>
-                          <td className="p-2.5 text-slate-800">{rec.heart_rate ?? '--'} BPM</td>
-                          <td className="p-2.5 text-slate-800">{rec.spo2 ?? '--'}%</td>
-                          <td className="p-2.5">{rec.temperature ? `${rec.temperature}°C` : '--'}</td>
-                          <td className="p-2.5 text-slate-500">{rec.device_id || 'Manual Entry'}</td>
+                          <td className="p-3 text-slate-800">{rec.heart_rate ?? '--'} BPM</td>
+                          <td className="p-3 text-slate-800">{rec.spo2 ?? '--'}%</td>
+                          <td className="p-3">{rec.temperature ? `${rec.temperature}°C` : '--'}</td>
+                          <td className="p-3 text-slate-500">{rec.device_id || 'Manual Entry'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -454,119 +494,47 @@ const DoctorDashboard = () => {
 
           {/* TAB 2: Medical History Questionnaire */}
           {activeTab === 'history' && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {unlockedFile.patient.medical_history ? (
-                <div className="space-y-5">
-                  
-                  {/* Past Conditions & Family Medical History */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    
-                    {/* Past Chronic Conditions */}
-                    <div className="bg-white p-5 rounded border border-slate-200 shadow-sm space-y-3">
-                      <h4 className="text-xs font-bold text-slate-900 uppercase pb-2 border-b border-slate-100">
-                        Past Chronic Conditions
-                      </h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {Array.isArray(unlockedFile.patient.medical_history.past_medical_issues) && unlockedFile.patient.medical_history.past_medical_issues.length > 0 ? (
-                          unlockedFile.patient.medical_history.past_medical_issues.map((cond, idx) => (
-                            <span key={idx} className="px-2.5 py-1 rounded bg-slate-100 text-slate-800 text-xs font-medium">
-                              {cond}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-xs text-slate-500">None reported.</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Family Medical History */}
-                    <div className="bg-white p-5 rounded border border-slate-200 shadow-sm space-y-3">
-                      <h4 className="text-xs font-bold text-slate-900 uppercase pb-2 border-b border-slate-100">
-                        Family Medical History
-                      </h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {Array.isArray(unlockedFile.patient.medical_history.family_medical_history) && unlockedFile.patient.medical_history.family_medical_history.length > 0 ? (
-                          unlockedFile.patient.medical_history.family_medical_history.map((hist, idx) => (
-                            <span key={idx} className="px-2.5 py-1 rounded bg-slate-100 text-slate-800 text-xs font-medium">
-                              {hist}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-xs text-slate-500">No family hereditary conditions reported.</span>
-                        )}
-                      </div>
-                      {unlockedFile.patient.medical_history.family_role && (
-                        <div className="pt-2 border-t border-slate-100 text-xs text-slate-600">
-                          <span className="font-semibold block mb-0.5">Family Role / Living Situation:</span>
-                          <span className="text-slate-800">{unlockedFile.patient.medical_history.family_role}</span>
-                        </div>
+                <div className="space-y-4">
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wide pb-2 border-b border-slate-100">
+                      Chronic Illnesses & Pre-existing Conditions
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {Array.isArray(unlockedFile.patient.medical_history.past_medical_issues) && 
+                       unlockedFile.patient.medical_history.past_medical_issues.length > 0 ? (
+                        unlockedFile.patient.medical_history.past_medical_issues.map((c, i) => (
+                          <span key={i} className="px-3 py-1 rounded-lg text-xs font-semibold bg-rose-50 text-rose-800 border border-rose-200">
+                            {c}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-xs text-slate-500">None reported during healthcamp intake.</span>
                       )}
                     </div>
-
                   </div>
 
-                  {/* Surgeries & Allergies */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    
-                    {/* Past Surgeries */}
-                    <div className="bg-white p-5 rounded border border-slate-200 shadow-sm space-y-3">
-                      <h4 className="text-xs font-bold text-slate-900 uppercase pb-2 border-b border-slate-100">
-                        Past Surgeries & Hospitalizations
-                      </h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {Array.isArray(unlockedFile.patient.medical_history.surgeries_and_hospitalizations) && unlockedFile.patient.medical_history.surgeries_and_hospitalizations.length > 0 ? (
-                          unlockedFile.patient.medical_history.surgeries_and_hospitalizations.map((surg, idx) => (
-                            <span key={idx} className="px-2.5 py-1 rounded bg-slate-100 text-slate-800 text-xs font-medium">
-                              {surg}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-xs text-slate-500">None recorded.</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Known Allergies */}
-                    <div className="bg-white p-5 rounded border border-slate-200 shadow-sm space-y-3">
-                      <h4 className="text-xs font-bold text-slate-900 uppercase pb-2 border-b border-slate-100">
-                        Known Drug & Food Allergies
-                      </h4>
-                      <div className="flex flex-wrap gap-1.5">
-                        {Array.isArray(unlockedFile.patient.medical_history.known_allergies) && unlockedFile.patient.medical_history.known_allergies.length > 0 ? (
-                          unlockedFile.patient.medical_history.known_allergies.map((allg, idx) => (
-                            <span key={idx} className="px-2.5 py-1 rounded bg-rose-50 text-rose-800 text-xs font-medium border border-rose-200">
-                              {allg}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-xs text-slate-500">No known allergies.</span>
-                        )}
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Lifestyle & Medications */}
-                  <div className="bg-white p-5 rounded border border-slate-200 shadow-sm space-y-3">
-                    <h4 className="text-xs font-bold text-slate-900 uppercase pb-2 border-b border-slate-100">
-                      Lifestyle Profile & Ongoing Medications
+                  <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+                    <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wide pb-2 border-b border-slate-100">
+                      Lifestyle Profile & Medications
                     </h4>
                     
                     {unlockedFile.patient.medical_history.lifestyle && (
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                        <div className="p-2.5 rounded bg-slate-50 border border-slate-200">
-                          <span className="text-slate-500 block">Tobacco / Smoking</span>
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                          <span className="text-slate-500 block">Smoking</span>
                           <span className="font-semibold text-slate-800">{unlockedFile.patient.medical_history.lifestyle.smoking || 'N/A'}</span>
                         </div>
-                        <div className="p-2.5 rounded bg-slate-50 border border-slate-200">
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                           <span className="text-slate-500 block">Alcohol</span>
                           <span className="font-semibold text-slate-800">{unlockedFile.patient.medical_history.lifestyle.alcohol || 'N/A'}</span>
                         </div>
-                        <div className="p-2.5 rounded bg-slate-50 border border-slate-200">
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                           <span className="text-slate-500 block">Physical Activity</span>
                           <span className="font-semibold text-slate-800">{unlockedFile.patient.medical_history.lifestyle.physical_activity || 'N/A'}</span>
                         </div>
-                        <div className="p-2.5 rounded bg-slate-50 border border-slate-200">
+                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                           <span className="text-slate-500 block">Diet</span>
                           <span className="font-semibold text-slate-800">{unlockedFile.patient.medical_history.lifestyle.diet || 'N/A'}</span>
                         </div>
@@ -574,20 +542,19 @@ const DoctorDashboard = () => {
                     )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                      <div className="p-3 rounded bg-slate-50 border border-slate-200">
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
                         <span className="text-xs font-bold text-slate-700 block mb-1">Ongoing Daily Medications</span>
                         <p className="text-xs text-slate-800">{unlockedFile.patient.medical_history.current_medications || 'None recorded'}</p>
                       </div>
-                      <div className="p-3 rounded bg-slate-50 border border-slate-200">
-                        <span className="text-xs font-bold text-slate-700 block mb-1">Registration Intake Notes</span>
+                      <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                        <span className="text-xs font-bold text-slate-700 block mb-1">Registration Notes</span>
                         <p className="text-xs text-slate-800">{unlockedFile.patient.medical_history.intake_notes || 'No remarks.'}</p>
                       </div>
                     </div>
                   </div>
-
                 </div>
               ) : (
-                <div className="p-8 text-center bg-white rounded border border-slate-200 text-xs text-slate-500">
+                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-xs text-slate-500 shadow-sm">
                   No medical history questionnaire recorded for this patient.
                 </div>
               )}
@@ -598,28 +565,28 @@ const DoctorDashboard = () => {
           {activeTab === 'notes' && (
             <div className="space-y-4">
               {unlockedFile.clinical_history.length === 0 ? (
-                <div className="p-8 text-center bg-white rounded border border-slate-200 text-xs text-slate-500 space-y-3">
+                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-xs text-slate-500 space-y-3 shadow-sm">
                   <p>No doctor clinical notes recorded yet.</p>
                   <button
                     onClick={() => setActiveTab('addNote')}
-                    className="px-3 py-1.5 text-xs font-semibold rounded bg-teal-800 text-white"
+                    className="px-4 py-2 text-xs font-bold rounded-xl bg-teal-800 text-white shadow-sm"
                   >
                     Write First Diagnosis & Prescription
                   </button>
                 </div>
               ) : (
                 unlockedFile.clinical_history.map((note) => (
-                  <div key={note.id} className="p-5 rounded bg-white border border-slate-200 shadow-sm space-y-3">
+                  <div key={note.id} className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
                     <div className="flex items-start justify-between pb-2 border-b border-slate-100">
                       <div>
                         <h4 className="text-sm font-bold text-slate-900">{note.diagnosis || 'Clinical Diagnosis'}</h4>
                         <p className="text-xs text-slate-500">
-                          Attending Doctor: <strong>{note.doctor_name}</strong> • {new Date(note.created_at).toLocaleDateString([], { dateStyle: 'long' })}
+                          Doctor: <strong>{note.doctor_name}</strong> • {new Date(note.created_at).toLocaleDateString([], { dateStyle: 'long' })}
                         </p>
                       </div>
                       {note.follow_up_date && (
-                        <span className="px-2.5 py-1 rounded bg-teal-50 text-teal-800 text-xs font-semibold">
-                          Follow-up Date: {note.follow_up_date}
+                        <span className="px-2.5 py-1 rounded-lg bg-teal-50 text-teal-800 text-xs font-semibold">
+                          Follow-up: {note.follow_up_date}
                         </span>
                       )}
                     </div>
@@ -627,7 +594,7 @@ const DoctorDashboard = () => {
                     {note.prescription && (
                       <div>
                         <p className="text-xs font-bold text-slate-700 mb-1">Prescription & Medical Advice</p>
-                        <p className="text-xs text-slate-800 whitespace-pre-line bg-slate-50 p-2.5 rounded border border-slate-200">
+                        <p className="text-xs text-slate-800 whitespace-pre-line bg-slate-50 p-3 rounded-xl border border-slate-200">
                           {note.prescription}
                         </p>
                       </div>
@@ -638,9 +605,9 @@ const DoctorDashboard = () => {
                         <p className="text-xs font-bold text-slate-700 mb-1.5">Prescribed Medicines</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                           {note.prescribed_medicines.map((med, idx) => (
-                            <div key={idx} className="p-2 rounded bg-slate-50 border border-slate-200 text-xs flex items-center justify-between">
+                            <div key={idx} className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs flex items-center justify-between">
                               <span className="font-bold text-slate-900">{med.name} {med.dosage}</span>
-                              <span className="text-slate-600">{med.frequency} ({med.days} days)</span>
+                              <span className="text-slate-600 font-mono">{med.frequency} ({med.days} days)</span>
                             </div>
                           ))}
                         </div>
@@ -665,7 +632,7 @@ const DoctorDashboard = () => {
               <div className="flex items-center justify-between pb-2 border-b border-slate-200">
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Uploaded Medical Reports & Scans</h3>
-                  <p className="text-xs text-slate-500">Reports uploaded for this patient during village healthcamp intake</p>
+                  <p className="text-xs text-slate-500">Reports uploaded for this patient during village intake</p>
                 </div>
                 <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700">
                   {unlockedFile.reports?.length || 0} File(s)
@@ -673,13 +640,13 @@ const DoctorDashboard = () => {
               </div>
 
               {(!unlockedFile.reports || unlockedFile.reports.length === 0) ? (
-                <div className="p-8 text-center bg-white rounded border border-slate-200 text-xs text-slate-500">
+                <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-xs text-slate-500 shadow-sm">
                   No additional medical reports uploaded for this patient yet.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {unlockedFile.reports.map((rep) => (
-                    <div key={rep.id} className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm space-y-2 flex flex-col justify-between">
+                    <div key={rep.id} className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-2 flex flex-col justify-between">
                       <div>
                         <div className="flex items-center justify-between">
                           <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-50 text-teal-800 border border-teal-200">
@@ -697,9 +664,10 @@ const DoctorDashboard = () => {
                           href={`/api/v1/reports/download/${rep.id}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-3 py-1.5 rounded bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold shadow-sm transition"
+                          className="px-3.5 py-1.5 rounded-xl bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1"
                         >
-                          Download / View Report
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Download / View</span>
                         </a>
                       </div>
                     </div>
@@ -711,7 +679,7 @@ const DoctorDashboard = () => {
 
           {/* TAB 4: Add Diagnosis & Prescription */}
           {activeTab === 'addNote' && (
-            <div className="bg-white p-5 sm:p-6 rounded border border-slate-200 shadow-sm space-y-4">
+            <div className="bg-white p-5 sm:p-7 rounded-2xl border border-slate-200 shadow-sm space-y-5">
               <div className="pb-3 border-b border-slate-100">
                 <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
                   New Clinical Diagnosis & Prescription
@@ -723,7 +691,7 @@ const DoctorDashboard = () => {
 
               <form onSubmit={handleSubmitClinicalNote} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     Primary Diagnosis *
                   </label>
                   <input
@@ -732,71 +700,75 @@ const DoctorDashboard = () => {
                     onChange={(e) => setDiagnosis(e.target.value)}
                     placeholder="e.g. Mild Hypertension, Respiratory Infection..."
                     required
-                    className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-sm focus:border-teal-700 focus:outline-none"
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-700"
                   />
                 </div>
 
-                {/* Medicines List */}
-                <div className="space-y-2">
+                {/* Medicines List - Fully Responsive Grid (No Collapsing) */}
+                <div className="space-y-2.5">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-slate-700">
+                    <label className="text-xs font-bold text-slate-700">
                       Prescribed Medicines
                     </label>
                     <button
                       type="button"
                       onClick={handleAddMedicineRow}
-                      className="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold"
+                      className="px-3 py-1 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-xs font-semibold flex items-center gap-1"
                     >
-                      + Add Medicine
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add Medicine</span>
                     </button>
                   </div>
 
                   {medicines.map((med, idx) => (
-                    <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                      <div className="col-span-4">
+                    <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2 sm:space-y-0 sm:grid sm:grid-cols-12 sm:gap-2 sm:items-center">
+                      <div className="sm:col-span-4">
                         <input
                           type="text"
                           value={med.name}
                           onChange={(e) => handleMedicineChange(idx, 'name', e.target.value)}
-                          placeholder="Medicine Name"
-                          className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-xs text-slate-900 focus:border-teal-700 focus:outline-none"
+                          placeholder="Medicine Name (e.g. Paracetamol)"
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                         />
                       </div>
-                      <div className="col-span-3">
+                      <div className="sm:col-span-3">
                         <input
                           type="text"
                           value={med.dosage}
                           onChange={(e) => handleMedicineChange(idx, 'dosage', e.target.value)}
-                          placeholder="Dosage (5mg)"
-                          className="w-full px-2.5 py-1.5 rounded bg-white border border-slate-300 text-xs text-slate-900 focus:border-teal-700 focus:outline-none"
+                          placeholder="Dosage (500mg)"
+                          className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-xs text-slate-900 focus:outline-none focus:border-teal-700"
                         />
                       </div>
-                      <div className="col-span-2">
-                        <input
-                          type="text"
-                          value={med.frequency}
-                          onChange={(e) => handleMedicineChange(idx, 'frequency', e.target.value)}
-                          placeholder="1-0-1"
-                          className="w-full px-2 py-1.5 rounded bg-white border border-slate-300 text-xs text-slate-900 text-center focus:border-teal-700 focus:outline-none"
-                        />
+                      <div className="grid grid-cols-2 gap-2 sm:contents">
+                        <div className="sm:col-span-2">
+                          <input
+                            type="text"
+                            value={med.frequency}
+                            onChange={(e) => handleMedicineChange(idx, 'frequency', e.target.value)}
+                            placeholder="1-0-1"
+                            className="w-full px-2 py-1.5 rounded-lg bg-white border border-slate-300 text-xs text-slate-900 text-center focus:outline-none focus:border-teal-700"
+                          />
+                        </div>
+                        <div className="sm:col-span-2">
+                          <input
+                            type="text"
+                            value={med.days}
+                            onChange={(e) => handleMedicineChange(idx, 'days', e.target.value)}
+                            placeholder="5 Days"
+                            className="w-full px-2 py-1.5 rounded-lg bg-white border border-slate-300 text-xs text-slate-900 text-center focus:outline-none focus:border-teal-700"
+                          />
+                        </div>
                       </div>
-                      <div className="col-span-2">
-                        <input
-                          type="text"
-                          value={med.days}
-                          onChange={(e) => handleMedicineChange(idx, 'days', e.target.value)}
-                          placeholder="Days"
-                          className="w-full px-2 py-1.5 rounded bg-white border border-slate-300 text-xs text-slate-900 text-center focus:border-teal-700 focus:outline-none"
-                        />
-                      </div>
-                      <div className="col-span-1 text-center">
+                      <div className="sm:col-span-1 text-right sm:text-center">
                         {medicines.length > 1 && (
                           <button
                             type="button"
                             onClick={() => handleRemoveMedicineRow(idx)}
-                            className="text-xs font-bold text-slate-400 hover:text-rose-700"
+                            className="text-xs font-bold text-rose-600 hover:text-rose-800 p-1"
+                            title="Remove medicine"
                           >
-                            ✕
+                            ✕ Remove
                           </button>
                         )}
                       </div>
@@ -805,27 +777,41 @@ const DoctorDashboard = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     Prescription & Dietary Advice
                   </label>
                   <textarea
                     rows={3}
                     value={prescription}
                     onChange={(e) => setPrescription(e.target.value)}
-                    placeholder="e.g. Reduce salt intake, regular 30 min morning walk..."
-                    className="w-full px-3 py-2 rounded bg-white border border-slate-300 text-slate-900 text-xs focus:border-teal-700 focus:outline-none"
+                    placeholder="e.g. Reduce salt intake, maintain 30 min daily walking, drink plenty of water..."
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-700"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Follow-Up Date / Next Visit
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Confidential Clinical Notes / Remarks
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={clinicalNotes}
+                    onChange={(e) => setClinicalNotes(e.target.value)}
+                    placeholder="Clinical findings, referral notes, or differential diagnosis..."
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-700"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Recommended Follow-up Date
                   </label>
                   <input
                     type="date"
+                    min={new Date().toISOString().split('T')[0]}
                     value={followUpDate}
                     onChange={(e) => setFollowUpDate(e.target.value)}
-                    className="w-full sm:w-1/2 px-3 py-1.5 rounded bg-white border border-slate-300 text-slate-900 text-xs focus:border-teal-700 focus:outline-none"
+                    className="w-full sm:w-60 px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-teal-700"
                   />
                 </div>
 
@@ -833,16 +819,9 @@ const DoctorDashboard = () => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-2.5 px-4 rounded bg-teal-800 hover:bg-teal-900 text-white font-semibold text-sm transition shadow-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                    className="w-full py-3 rounded-xl bg-teal-800 hover:bg-teal-900 text-white font-bold text-xs shadow-sm transition disabled:opacity-50"
                   >
-                    {loading ? (
-                      <>
-                        <span className="spinner-white"></span>
-                        <span>Saving prescription to medical record...</span>
-                      </>
-                    ) : (
-                      'Save & Publish Prescription to Patient File'
-                    )}
+                    {loading ? 'Recording Consultation...' : 'Save Consultation & Issue Prescription'}
                   </button>
                 </div>
               </form>

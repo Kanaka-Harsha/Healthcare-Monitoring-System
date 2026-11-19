@@ -77,12 +77,12 @@ const PatientDashboard = () => {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
       
       {/* Patient Header Card */}
-      <div className="p-5 rounded bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-lg font-bold text-slate-900">{patient.full_name}</h1>
-            <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-semibold">
-              Verified Patient
+            <h1 className="text-xl font-bold text-slate-900">{patient.full_name}</h1>
+            <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">
+              Verified Citizen
             </span>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 mt-1">
@@ -90,15 +90,15 @@ const PatientDashboard = () => {
             <span>•</span>
             <span>Aadhaar: <strong className="font-mono">{patient.aadhaar_masked}</strong></span>
             <span>•</span>
-            <span>Age: <strong>{patient.age || 'N/A'} yrs</strong></span>
+            <span>{patient.age || 'N/A'} yrs</span>
             <span>•</span>
-            <span>Gender: <strong>{patient.gender || 'N/A'}</strong></span>
+            <span>{patient.gender || 'N/A'}</span>
           </div>
         </div>
 
         <button
           onClick={handlePrint}
-          className="px-3 py-1.5 rounded bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-semibold text-slate-700 transition"
+          className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs font-bold text-slate-700 transition shadow-sm flex-shrink-0"
         >
           Print Health Record
         </button>
@@ -119,60 +119,60 @@ const PatientDashboard = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             
             {/* Blood Pressure */}
-            <div className="p-3.5 rounded bg-white border border-slate-200 shadow-sm">
-              <span className="text-xs text-slate-600 block">Blood Pressure</span>
-              <div className="text-lg font-bold text-slate-900 mt-0.5">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+              <span className="text-xs text-slate-500 block font-medium">Blood Pressure</span>
+              <div className="text-xl font-bold text-slate-900 mt-1">
                 {latestVitals.systolic_bp ?? '--'} / {latestVitals.diastolic_bp ?? '--'}
-                <span className="text-xs font-normal text-slate-500 ml-1">mmHg</span>
+                <span className="text-xs font-normal text-slate-400 ml-1">mmHg</span>
               </div>
-              <p className="text-[11px] text-emerald-700 mt-0.5 font-semibold">
+              <p className="text-[11px] text-emerald-700 mt-1 font-semibold">
                 {latestVitals.systolic_bp < 120 ? 'Normal Range' : 'Check with Doctor'}
               </p>
             </div>
 
             {/* Heart Rate */}
-            <div className="p-3.5 rounded bg-white border border-slate-200 shadow-sm">
-              <span className="text-xs text-slate-600 block">Pulse Rate</span>
-              <div className="text-lg font-bold text-slate-900 mt-0.5">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+              <span className="text-xs text-slate-500 block font-medium">Pulse Rate</span>
+              <div className="text-xl font-bold text-slate-900 mt-1">
                 {latestVitals.heart_rate ?? '--'}
-                <span className="text-xs font-normal text-slate-500 ml-1">BPM</span>
+                <span className="text-xs font-normal text-slate-400 ml-1">BPM</span>
               </div>
-              <p className="text-[11px] text-slate-600 mt-0.5">Pulse</p>
+              <p className="text-[11px] text-slate-500 mt-1 font-medium">Resting Pulse</p>
             </div>
 
             {/* SpO2 */}
-            <div className="p-3.5 rounded bg-white border border-slate-200 shadow-sm">
-              <span className="text-xs text-slate-600 block">Oxygen (SpO2)</span>
-              <div className="text-lg font-bold text-slate-900 mt-0.5">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+              <span className="text-xs text-slate-500 block font-medium">Oxygen (SpO2)</span>
+              <div className="text-xl font-bold text-slate-900 mt-1">
                 {latestVitals.spo2 ?? '--'}
-                <span className="text-xs font-normal text-slate-500 ml-1">%</span>
+                <span className="text-xs font-normal text-slate-400 ml-1">%</span>
               </div>
-              <p className="text-[11px] text-emerald-700 mt-0.5 font-semibold">
+              <p className="text-[11px] text-emerald-700 mt-1 font-semibold">
                 {latestVitals.spo2 >= 95 ? 'Normal Oxygen' : 'Low Oxygen'}
               </p>
             </div>
 
             {/* Temperature */}
-            <div className="p-3.5 rounded bg-white border border-slate-200 shadow-sm">
-              <span className="text-xs text-slate-600 block">Body Temperature</span>
-              <div className="text-lg font-bold text-slate-900 mt-0.5">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
+              <span className="text-xs text-slate-500 block font-medium">Body Temperature</span>
+              <div className="text-xl font-bold text-slate-900 mt-1">
                 {latestVitals.temperature ?? '36.6'}
-                <span className="text-xs font-normal text-slate-500 ml-1">°C</span>
+                <span className="text-xs font-normal text-slate-400 ml-1">°C</span>
               </div>
-              <p className="text-[11px] text-slate-600 mt-0.5">Normal</p>
+              <p className="text-[11px] text-slate-500 mt-1 font-medium">Normal</p>
             </div>
 
           </div>
         </div>
       ) : (
-        <div className="p-6 text-center bg-white rounded border border-slate-200 text-slate-600 text-xs">
+        <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-slate-500 text-xs shadow-sm">
           No vitals recorded yet. Visit the local healthcamp assistant to perform a screening.
         </div>
       )}
 
       {/* Vitals Trend Graph */}
       {chartData.length > 1 && (
-        <div className="p-5 rounded bg-white border border-slate-200 shadow-sm space-y-3">
+        <div className="p-5 sm:p-6 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3">
           <h3 className="text-sm font-bold text-slate-900">Health Measurements Trend</h3>
           <div className="h-60 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -180,7 +180,7 @@ const PatientDashboard = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="time" stroke="#64748b" fontSize={11} />
                 <YAxis stroke="#64748b" fontSize={11} domain={['dataMin - 10', 'dataMax + 10']} />
-                <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#cbd5e1', fontSize: '12px' }} />
+                <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #cbd5e1', fontSize: '12px' }} />
                 <Legend />
                 <Line type="monotone" dataKey="systolic" name="Systolic BP" stroke="#0284c7" strokeWidth={2} />
                 <Line type="monotone" dataKey="diastolic" name="Diastolic BP" stroke="#0f766e" strokeWidth={2} />

@@ -623,25 +623,163 @@ const UserRegistrationPage = () => {
           </div>
 
           <section className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-            <div><h2 className="text-sm font-bold text-slate-900">Health checks and care details</h2><p className="text-xs text-slate-500 mt-1">Record only what was asked or checked. Leave unknown details as “Not recorded”.</p></div>
+            <div>
+              <h2 className="text-sm font-bold text-slate-900">Health Checks & Care Details</h2>
+              <p className="text-xs text-slate-500 mt-0.5">Record only what was asked or checked. Leave unknown details as “Not recorded”.</p>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <div><label className="block text-xs font-bold text-slate-700 mb-1">Age in days (for newborns)</label><input type="number" min="0" max="365" value={ageDays} onChange={e=>setAgeDays(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg" /></div>
-              <div><label className="block text-xs font-bold text-slate-700 mb-1">Age in months (under 6 years)</label><input type="number" min="0" max="71" value={ageMonths} onChange={e=>setAgeMonths(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg" /></div>
-              <div><label className="block text-xs font-bold text-slate-700 mb-1">Health concerns checked?</label><select value={healthAssessed} onChange={e=>setHealthAssessed(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg"><option value="unknown">Not recorded</option><option value="yes">Yes</option><option value="no">No</option></select></div>
-              {gender === 'Female' && <div><label className="block text-xs font-bold text-slate-700 mb-1">Pregnant?</label><select value={pregnancyStatus} onChange={e=>setPregnancyStatus(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg"><option value="unknown">Not recorded</option><option value="yes">Yes</option><option value="no">No</option></select></div>}
-              {gender === 'Female' && pregnancyStatus === 'yes' && <>
-                <div><label className="block text-xs font-bold text-slate-700 mb-1">Pregnancy month</label><select value={pregnancyMonth} onChange={e=>setPregnancyMonth(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg"><option value="">Not recorded</option>{Array.from({length:9},(_,i)=><option key={i+1} value={i+1}>{i+1} month</option>)}</select></div>
-                <div><label className="block text-xs font-bold text-slate-700 mb-1">Pregnancy check-up visits</label><input type="number" min="0" max="30" value={ancVisits} onChange={e=>setAncVisits(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-lg" /></div>
-              </>}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Age in Days (for newborns)</label>
+                <input type="number" min="0" max="365" value={ageDays} onChange={e=>setAgeDays(e.target.value)} placeholder="e.g. 14" className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Age in Months (under 6 years)</label>
+                <input type="number" min="0" max="71" value={ageMonths} onChange={e=>setAgeMonths(e.target.value)} placeholder="e.g. 18" className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Health Concerns Checked?</label>
+                <select value={healthAssessed} onChange={e=>setHealthAssessed(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium">
+                  <option value="unknown">Not recorded</option>
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </div>
+              {gender === 'Female' && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Pregnant?</label>
+                  <select value={pregnancyStatus} onChange={e=>setPregnancyStatus(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium">
+                    <option value="unknown">Not recorded</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+              )}
+              {gender === 'Female' && pregnancyStatus === 'yes' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Pregnancy Month</label>
+                    <select value={pregnancyMonth} onChange={e=>setPregnancyMonth(e.target.value)} className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium">
+                      <option value="">Not recorded</option>
+                      {Array.from({length:9},(_,i)=><option key={i+1} value={i+1}>{i+1} month</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Pregnancy Check-up Visits</label>
+                    <input type="number" min="0" max="30" value={ancVisits} onChange={e=>setAncVisits(e.target.value)} placeholder="e.g. 3" className="w-full text-xs px-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-700 font-medium" />
+                  </div>
+                </>
+              )}
             </div>
 
-            {gender === 'Female' && pregnancyStatus === 'yes' && <div className="rounded-xl border border-pink-100 bg-pink-50/50 p-3 space-y-3"><h3 className="text-xs font-bold text-slate-800">Pregnancy checks and care</h3><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">{[['blood_pressure','Blood pressure checked'],['haemoglobin','Blood level checked'],['blood_sugar','Blood sugar checked'],['urine_test','Urine checked'],['td_vaccine','Td vaccine recorded'],['iron_calcium','Iron or calcium tablets recorded']].map(([key,label])=><label key={key} className="text-xs font-medium text-slate-700">{label}<select value={antenatalCare[key] === true ? 'done' : antenatalCare[key] === false ? 'not_done' : 'unknown'} onChange={e=>setAntenatalCare(value=>({...value,[key]:e.target.value==='done'?true:e.target.value==='not_done'?false:null}))} className="mt-1 block w-full rounded-lg border border-slate-300 bg-white p-2"><option value="unknown">Not recorded</option><option value="done">Done</option><option value="not_done">Not done</option></select></label>)}</div><div><label className="block text-xs font-bold text-slate-700 mb-2">Pregnancy concerns (reported or recorded)</label><div className="flex flex-wrap gap-2">{['High blood pressure','Low haemoglobin','High blood sugar','Urine problem','Swelling','Other recorded concern'].map(x=><label key={x} className="text-xs flex items-center gap-1.5 rounded-full bg-white border px-2.5 py-1.5"><input type="checkbox" checked={pregnancyIssues.includes(x)} onChange={e=>setPregnancyIssues(v=>e.target.checked?[...v,x]:v.filter(k=>k!==x))}/>{x}</label>)}</div></div></div>}
+            {gender === 'Female' && pregnancyStatus === 'yes' && (
+              <div className="rounded-2xl border border-pink-200 bg-pink-50/60 p-4 space-y-3">
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide">Maternal Care & Antenatal Checks</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {[
+                    ['blood_pressure','Blood pressure checked'],
+                    ['haemoglobin','Haemoglobin level checked'],
+                    ['blood_sugar','Blood sugar checked'],
+                    ['urine_test','Urine test performed'],
+                    ['td_vaccine','Td vaccine administered'],
+                    ['iron_calcium','Iron / Calcium supplements']
+                  ].map(([key,label])=>(
+                    <label key={key} className="text-xs font-semibold text-slate-700 block">
+                      {label}
+                      <select 
+                        value={antenatalCare[key] === true ? 'done' : antenatalCare[key] === false ? 'not_done' : 'unknown'} 
+                        onChange={e=>setAntenatalCare(value=>({...value,[key]:e.target.value==='done'?true:e.target.value==='not_done'?false:null}))} 
+                        className="mt-1 block w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-medium"
+                      >
+                        <option value="unknown">Not recorded</option>
+                        <option value="done">Done</option>
+                        <option value="not_done">Not done</option>
+                      </select>
+                    </label>
+                  ))}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-800 mb-2">Pregnancy Concerns Reported</label>
+                  <div className="flex flex-wrap gap-2">
+                    {['High blood pressure','Low haemoglobin','High blood sugar','Urine problem','Swelling','Other concern'].map(x=>(
+                      <label key={x} className="text-xs flex items-center gap-1.5 rounded-full bg-white border border-pink-200 px-3 py-1.5 cursor-pointer shadow-xs">
+                        <input type="checkbox" checked={pregnancyIssues.includes(x)} onChange={e=>setPregnancyIssues(v=>e.target.checked?[...v,x]:v.filter(k=>k!==x))}/>
+                        <span>{x}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
-            {underSixForForm && <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-3 space-y-3"><h3 className="text-xs font-bold text-slate-800">Child health and vaccines</h3><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"><label className="text-xs font-bold text-slate-700">Vaccine status<select value={vaccinationStatus} onChange={e=>setVaccinationStatus(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5"><option value="unknown">Not recorded</option><option value="up_to_date">All due vaccines given</option><option value="some_missed">Some vaccines missed</option><option value="overdue">Vaccines overdue</option></select></label><label className="text-xs font-bold text-slate-700">Weight (kg)<input type="number" step="0.1" min="0" max="100" value={weightKg} onChange={e=>setWeightKg(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5" /></label><label className="text-xs font-bold text-slate-700">Height (cm)<input type="number" step="0.1" min="0" max="200" value={heightCm} onChange={e=>setHeightCm(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5" /></label></div><div className="flex flex-wrap items-end gap-2"><label className="text-xs font-bold text-slate-700">Vaccine / dose<input value={vaccineName} onChange={e=>setVaccineName(e.target.value)} placeholder="Enter as on vaccine card" className="mt-1 block rounded-lg border border-slate-300 bg-white p-2.5" /></label><label className="text-xs font-bold text-slate-700">Dose status<select value={vaccineDoseStatus} onChange={e=>setVaccineDoseStatus(e.target.value)} className="mt-1 block rounded-lg border border-slate-300 bg-white p-2.5"><option value="given">Given</option><option value="missed">Missed</option><option value="overdue">Overdue</option></select></label><button type="button" onClick={()=>{if(vaccineName.trim()){setVaccinationRecords(rows=>[...rows,{name:vaccineName.trim(),status:vaccineDoseStatus}]);setVaccineName('')}}} className="rounded-lg bg-blue-700 px-3 py-2.5 text-xs font-semibold text-white">Add dose</button></div>{vaccinationRecords.length>0&&<ul className="flex flex-wrap gap-2">{vaccinationRecords.map((row,index)=><li key={`${row.name}-${index}`} className="rounded-full border bg-white px-3 py-1 text-xs">{row.name}: {row.status}<button type="button" aria-label={`Remove ${row.name}`} onClick={()=>setVaccinationRecords(rows=>rows.filter((_,i)=>i!==index))} className="ml-2 font-bold text-rose-700">×</button></li>)}</ul>}<div><label className="block text-xs font-bold text-slate-700 mb-2">Growth and child concerns (recorded)</label><div className="flex flex-wrap gap-2">{['Low weight','Slow growth','Feeding difficulty','Frequent illness','Vision or hearing concern','Development concern','Other recorded concern'].map(x=><label key={x} className="text-xs flex items-center gap-1.5 rounded-full bg-white border px-2.5 py-1.5"><input type="checkbox" checked={growthIssues.includes(x)} onChange={e=>setGrowthIssues(v=>e.target.checked?[...v,x]:v.filter(k=>k!==x))}/>{x}</label>)}</div></div></div>}
+            {underSixForForm && (
+              <div className="rounded-2xl border border-blue-200 bg-blue-50/50 p-4 space-y-3">
+                <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wide">Child Health & Immunization (Under 6)</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Vaccine Status</label>
+                    <select value={vaccinationStatus} onChange={e=>setVaccinationStatus(e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white p-2.5 text-xs font-medium">
+                      <option value="unknown">Not recorded</option>
+                      <option value="up_to_date">All due vaccines given</option>
+                      <option value="some_missed">Some vaccines missed</option>
+                      <option value="overdue">Vaccines overdue</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Weight (kg)</label>
+                    <input type="number" step="0.1" min="0" max="100" value={weightKg} onChange={e=>setWeightKg(e.target.value)} placeholder="e.g. 12.5" className="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-medium" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Height (cm)</label>
+                    <input type="number" step="0.1" min="0" max="200" value={heightCm} onChange={e=>setHeightCm(e.target.value)} placeholder="e.g. 85" className="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-medium" />
+                  </div>
+                </div>
 
-            {newbornForForm && <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 space-y-3"><h3 className="text-xs font-bold text-slate-800">Newborn checks (birth to 28 days)</h3><div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"><label className="text-xs font-bold text-slate-700">Birth weight (kg)<input type="number" step="0.01" min="0" max="10" value={birthWeightKg} onChange={e=>setBirthWeightKg(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5" /></label><label className="text-xs font-bold text-slate-700">Newborn check completed?<select value={newbornCheckDone} onChange={e=>setNewbornCheckDone(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5"><option value="not_recorded">Not recorded</option><option value="yes">Yes</option><option value="no">No</option></select></label><label className="text-xs font-bold text-slate-700">Home visits recorded<input type="number" min="0" max="30" value={homeVisitCount} onChange={e=>setHomeVisitCount(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5" /></label><label className="text-xs font-bold text-slate-700">Birth vaccines status<select value={birthVaccinesStatus} onChange={e=>setBirthVaccinesStatus(e.target.value)} className="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2.5"><option value="not_recorded">Not recorded</option><option value="given">Recorded as given</option><option value="missed">Recorded as missed</option></select></label></div>{[['feedingConcerns','Feeding or breastfeeding concerns',['Not feeding well','Breastfeeding difficulty','Vomiting']],['newbornConcerns','Newborn concerns',['Breathing difficulty','Jaundice','Possible infection','Birth condition']]].map(([key,label,options])=><div key={key}><label className="block text-xs font-bold text-slate-700 mb-2">{label}</label><div className="flex flex-wrap gap-2">{options.map(x=><label key={x} className="text-xs flex items-center gap-1.5 rounded-full bg-white border px-2.5 py-1.5"><input type="checkbox" checked={(key==='feedingConcerns'?feedingConcerns:newbornConcerns).includes(x)} onChange={e=>{const setter=key==='feedingConcerns'?setFeedingConcerns:setNewbornConcerns;setter(v=>e.target.checked?[...v,x]:v.filter(k=>k!==x))}}/>{x}</label>)}</div></div>)}</div>}
+                <div className="flex flex-col sm:flex-row sm:items-end gap-2 pt-1">
+                  <div className="flex-1">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Vaccine / Dose Name</label>
+                    <input value={vaccineName} onChange={e=>setVaccineName(e.target.value)} placeholder="e.g. Polio Dose 1, DPT" className="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-medium" />
+                  </div>
+                  <div className="sm:w-44">
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Dose Status</label>
+                    <select value={vaccineDoseStatus} onChange={e=>setVaccineDoseStatus(e.target.value)} className="w-full rounded-xl border border-slate-300 bg-white p-2 text-xs font-medium">
+                      <option value="given">Given</option>
+                      <option value="missed">Missed</option>
+                      <option value="overdue">Overdue</option>
+                    </select>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={()=>{if(vaccineName.trim()){setVaccinationRecords(rows=>[...rows,{name:vaccineName.trim(),status:vaccineDoseStatus}]);setVaccineName('')}}} 
+                    className="rounded-xl bg-blue-700 hover:bg-blue-800 px-4 py-2 text-xs font-bold text-white shadow-sm transition"
+                  >
+                    + Add Dose
+                  </button>
+                </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label className="block text-xs font-bold text-slate-700 mb-2">Health concerns recorded</label><div className="flex flex-wrap gap-2">{['Heart or blood pressure','Blood sugar','Breathing or lungs','Stomach or bowel','Kidney or urine','Blood or nutrition','Brain or nerves','Bones or joints','Eyes','Ears','Dental','Skin','Mental wellbeing','Fever or infection','Other concern'].map(x=><label key={x} className="text-xs flex items-center gap-1.5 rounded-full bg-slate-50 border px-2.5 py-1.5"><input type="checkbox" checked={issueCategories.includes(x)} onChange={e=>setIssueCategories(v=>e.target.checked?[...v,x]:v.filter(k=>k!==x))}/>{x}</label>)}</div></div></div>
+                {vaccinationRecords.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {vaccinationRecords.map((row, index)=>(
+                      <span key={`${row.name}-${index}`} className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-white px-3 py-1 text-xs font-medium text-slate-800 shadow-xs">
+                        <span>{row.name}: <strong>{row.status}</strong></span>
+                        <button type="button" aria-label={`Remove ${row.name}`} onClick={()=>setVaccinationRecords(rows=>rows.filter((_,i)=>i!==index))} className="font-bold text-rose-600 hover:text-rose-800 ml-1">✕</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-2">Health Concern Categories</label>
+              <div className="flex flex-wrap gap-2">
+                {['Heart or BP','Blood sugar / Diabetes','Breathing / Asthma','Stomach / Bowel','Kidney / Urine','Nutrition / Anaemia','Nerves / Neurological','Joints / Arthritis','Vision / Eyes','Dental','Skin','Fever / Infection','Other'].map(x=>(
+                  <label key={x} className="text-xs flex items-center gap-1.5 rounded-full bg-slate-50 border border-slate-200 px-3 py-1.5 cursor-pointer hover:bg-slate-100 shadow-xs">
+                    <input type="checkbox" checked={issueCategories.includes(x)} onChange={e=>setIssueCategories(v=>e.target.checked?[...v,x]:v.filter(k=>k!==x))}/>
+                    <span>{x}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
           </section>
 
           {/* SECTION 3: Structured Address Columns */}
