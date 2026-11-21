@@ -104,12 +104,13 @@ if isinstance(settings.CORS_ORIGINS, str):
     if settings.CORS_ORIGINS.strip() == "*":
         origins = ["*"]
     else:
-        origins = [orig.strip() for orig in settings.CORS_ORIGINS.split(",") if orig.strip()]
+        origins = [orig.strip().rstrip("/") for orig in settings.CORS_ORIGINS.split(",") if orig.strip()]
 else:
-    origins = list(settings.CORS_ORIGINS)
+    origins = [o.rstrip("/") if isinstance(o, str) else o for o in settings.CORS_ORIGINS]
 
 for extra in [
-    settings.VERCEL_FRONTEND_URL,
+    settings.VERCEL_FRONTEND_URL.rstrip("/") if settings.VERCEL_FRONTEND_URL else None,
+    "https://swastgram.vercel.app",
     "https://healthcare-monitoring-system-nine.vercel.app",
     "https://casually-override-childlike.ngrok-free.dev",
     "http://localhost:3000",
@@ -123,7 +124,7 @@ for extra in [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins if "*" in origins else origins,
-    allow_origin_regex=r"^(https:\/\/.*\.vercel\.app|https:\/\/.*\.ngrok-free\.dev|https:\/\/.*\.ngrok\.app|https:\/\/[a-z0-9\-]+\.trycloudflare\.com)$" if "*" not in origins else None,
+    allow_origin_regex=r"^(https:\/\/.*\.vercel\.app|https:\/\/.*\.ngrok-free\.dev|https:\/\/.*\.ngrok\.app)$" if "*" not in origins else None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
