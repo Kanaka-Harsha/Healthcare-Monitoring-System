@@ -81,6 +81,7 @@ const CollectorDashboard = () => {
   const [spo2, setSpo2] = useState('');
   const [temperature, setTemperature] = useState('36.6');
   const [bloodGlucose, setBloodGlucose] = useState('');
+  const [heightCm, setHeightCm] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [lastVitalsResult, setLastVitalsResult] = useState(null);
 
@@ -124,7 +125,8 @@ const CollectorDashboard = () => {
     if (v.spo2) setSpo2(v.spo2);
     if (v.temperature) setTemperature(v.temperature);
     if (v.blood_glucose) setBloodGlucose(v.blood_glucose);
-    notify('success', 'Readings captured from medical device into the form.');
+    if (v.height_cm) setHeightCm(v.height_cm);
+    notify('success', 'Readings captured from ESP32 Master into the screening form.');
   };
 
   // ── Step 1a: Search master patient registry ────────────────────────────────
@@ -246,7 +248,10 @@ const CollectorDashboard = () => {
       spo2: spo2 ? parseFloat(spo2) : null,
       temperature: temperature ? parseFloat(temperature) : null,
       blood_glucose: bloodGlucose ? parseFloat(bloodGlucose) : null,
-      device_id: liveVitals?.device_id || 'MANUAL-ASSISTANT',
+      additional_metrics: {
+        ...(heightCm ? { height_cm: parseFloat(heightCm) } : {})
+      },
+      device_id: liveVitals?.device_id || 'HEALTH_MASTER',
       recorded_at: new Date().toISOString(),
     };
 
@@ -299,6 +304,7 @@ const CollectorDashboard = () => {
     setSpo2('');
     setTemperature('36.6');
     setBloodGlucose('');
+    setHeightCm('');
   };
 
   const handleStartNew = () => {
@@ -736,9 +742,9 @@ const CollectorDashboard = () => {
 
                 <div>
                   <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wide mb-2">
-                    Temperature & Blood Sugar
+                    Temperature, Height & Physical Metrics
                   </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">
                         Body Temperature (°C)
@@ -749,6 +755,19 @@ const CollectorDashboard = () => {
                         value={temperature}
                         onChange={(e) => setTemperature(e.target.value)}
                         placeholder="36.6"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-teal-700"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">
+                        Height <span className="text-slate-400 font-normal">(cm, from Height Slave)</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.1"
+                        value={heightCm}
+                        onChange={(e) => setHeightCm(e.target.value)}
+                        placeholder="e.g. 165.0"
                         className="w-full px-3 py-2 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-teal-700"
                       />
                     </div>

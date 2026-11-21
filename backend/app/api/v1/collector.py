@@ -464,8 +464,13 @@ def submit_vitals(
     )
     db.add(vitals)
 
-    # Update patient's current risk category
+    # Update patient's current risk category and height if provided
     patient.risk_category = computed_risk
+    if payload.additional_metrics and "height_cm" in payload.additional_metrics and payload.additional_metrics["height_cm"] is not None:
+        try:
+            patient.height_cm = float(payload.additional_metrics["height_cm"])
+        except (ValueError, TypeError):
+            pass
 
     db.commit()
     db.refresh(vitals)
